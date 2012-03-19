@@ -16,8 +16,9 @@ using virtualenv::
     cd twofactor
     ../bin/python setup.py develop
     ../bin/initializedb develop.ini
-    ../bin/adduser development.ini
+    ../bin/adduser development.ini --username=john@foo.bar
     ../bin/paster serve develop.ini
+    ../bin/removeuser development.ini --username=john@foo.bar
 
 
 Configuration
@@ -25,5 +26,6 @@ Configuration
 Must follow the example develop.ini provided.
 
 Edit server and port settings for application server.
+
 
 

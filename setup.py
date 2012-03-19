@@ -19,6 +19,7 @@ setup(name='twofactor',
       install_requires=[
           # -*- Extra requirements: -*-
           'PasteDeploy',
+          'PasteScript',
           'webob',
           'gunicorn',
           'WSGIProxy',
