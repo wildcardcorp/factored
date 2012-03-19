@@ -12,7 +12,7 @@ using virtualenv::
 
     virtualenv twofactor
     cd twofactor
-    svn checkout twofactor
+    git clone git://github.com/vangheem/twofactor.git
     cd twofactor
     ../bin/python setup.py develop
     ../bin/initializedb develop.ini
