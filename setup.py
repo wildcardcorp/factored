@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
-import sys, os
 
-version = '0.0'
+version = '0.1'
 
 setup(name='factored',
       version=version,
       description="",
-      long_description="",
+      long_description=open("README.txt").read() + "\n" +
+                       open("CHANGES.txt").read(),
       classifiers=[],
       keywords='',
       author='',
@@ -34,7 +34,7 @@ setup(name='factored',
       entry_points="""
       # -*- Entry points: -*-
       [paste.app_factory]
-      main = factored.auth:Authenticator
+      main = factored.app:Authenticator
 
       [console_scripts]
       initialize_db = factored.scripts.initializedb:main
