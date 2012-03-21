@@ -29,7 +29,8 @@ setup(name='factored',
           'transaction',
           'pyramid_tm',
           'pyramid_debugtoolbar',
-          'zope.sqlalchemy'
+          'zope.sqlalchemy',
+          'pyramid_simpleform'
       ],
       entry_points="""
       # -*- Entry points: -*-

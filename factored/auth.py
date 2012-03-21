@@ -5,9 +5,16 @@ import hashlib
 import base64
 from factored.models import DBSession, User
 from pyramid.httpexceptions import HTTPFound
-
+from pyramid_simpleform import Form
+from formencode import Schema, validators
+from pyramid_simpleform.renderers import FormRenderer
 
 _auth_plugins = []
+
+
+class BaseSchema(Schema):
+    filter_extra_fields = True
+    allow_extra_fields = True
 
 
 class FactoredPlugin(object):
@@ -27,49 +34,62 @@ def getFactoredPlugins():
     return _auth_plugins
 
 
-def authenticate(secretkey, code_attempt):
-    tm = int(time.time() / 30)
+class GoogleAuthSchema(Schema):
 
-    secretkey = base64.b32decode(secretkey)
+    username = validators.MinLength(5, not_empty=True)
+    code = validators.Int(not_empty=True)
 
-    # try 30 seconds behind and ahead as well
-    for ix in [-1, 0, 1]:
-        # convert timestamp to raw bytes
-        b = struct.pack(">q", tm + ix)
 
-        # generate HMAC-SHA1 from timestamp based on secret key
-        hm = hmac.HMAC(secretkey, b, hashlib.sha1).digest()
+class GoogleAuthForm(Form):
 
-        # extract 4 bytes from digest based on LSB
-        offset = ord(hm[-1]) & 0x0F
-        truncatedHash = hm[offset:offset + 4]
+    def authenticate(self, secretkey, code_attempt):
+        tm = int(time.time() / 30)
 
-        # get the code from it
-        code = struct.unpack(">L", truncatedHash)[0]
-        code &= 0x7FFFFFFF
-        code %= 1000000
+        secretkey = base64.b32decode(secretkey)
 
-        if ("%06d" % code) == str(code_attempt):
-            return True
+        # try 30 seconds behind and ahead as well
+        for ix in [-1, 0, 1]:
+            # convert timestamp to raw bytes
+            b = struct.pack(">q", tm + ix)
 
-    return False
+            # generate HMAC-SHA1 from timestamp based on secret key
+            hm = hmac.HMAC(secretkey, b, hashlib.sha1).digest()
+
+            # extract 4 bytes from digest based on LSB
+            offset = ord(hm[-1]) & 0x0F
+            truncatedHash = hm[offset:offset + 4]
+
+            # get the code from it
+            code = struct.unpack(">L", truncatedHash)[0]
+            code &= 0x7FFFFFFF
+            code %= 1000000
+
+            if ("%06d" % code) == str(code_attempt):
+                return True
+
+        return False
 
 
 def google_auth_view(req):
+    form = GoogleAuthForm(req, schema=GoogleAuthSchema)
     if req.method == "POST":
-        name = req.params.get('username')
-        code = req.params.get('code')
-        user = DBSession.query(User).filter_by(username=name).all()
-        if len(user) > 0:
-            user = user[0]
-            if authenticate(user.secret, code):
+        if form.validate():
+            user = DBSession.query(User).filter_by(
+                username=form.data['username']).first()
+            if user is None:
+                form.errors['username'] = u'Invalid username'
+            elif form.authenticate(user.secret, form.data['code']):
                 creds = {}
-                creds['repoze.who.userid'] = name
-                creds['identifier'] = req.environ['auth_tkt']
+                creds['repoze.who.userid'] = form.data['username']
+                creds['identifier'] = req.environ['settings']['auth_tkt']
                 who_api = req.environ['who_api']
                 headers = who_api.remember(creds)
                 raise HTTPFound(location='/', headers=headers)
-    return {'username': req.params.get('username', '')}
+            else:
+                form.errors['code'] = u'Code did not validate'
+                form.data['code'] = u''
+
+    return {'form': FormRenderer(form)}
 
 
 addFactoredPlugin('Google Auth', 'ga', google_auth_view,

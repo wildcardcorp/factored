@@ -5,27 +5,30 @@
     <form class="form-horizontal" method="POST">
       <fieldset>
         <legend>Use android app to authenticate...</legend>
-        <div class="control-group">
+        <div class="control-group" tal:define="error python: 'username' in form.form.errors"
+            tal:attributes="class python: error and 'error control-group' or 'control-group'">
           <label class="control-label" for="username">Username</label>
           <div class="controls">
-            <input type="text" class="input-xlarge" id="usernamer" name="username" value="${username}">
-            <p class="help-block">Username you've signed up with.</p>
+            ${form.text("username", size=30)}
+            <span class="help-inline" tal:condition="error">
+              ${form.errorlist("username")}
+            </span>
+            <p class="help-block">
+              Username you've signed up with.
+            </p>
           </div>
         </div>
-        <div class="control-group">
+        <div class="control-group" tal:define="error python: 'code' in form.form.errors"
+            tal:attributes="class python: error and 'error control-group' or 'control-group'">
           <label class="control-label" for="code">Access Code</label>
           <div class="controls">
-            <input type="password" class="input-xlarge" id="code" name="code">
-            <p class="help-block">As generated with google authenticator.</p>
-          </div>
-        </div>
-        <div class="control-group">
-          <label class="control-label" for="optionsCheckbox">Remember me</label>
-          <div class="controls">
-            <label class="checkbox">
-              <input type="checkbox" id="optionsCheckbox" value="option1">
-              Stay logged in longer.
-            </label>
+            ${form.password("code", size=10)}
+            <span class="help-inline" tal:condition="error">
+              ${form.errorlist("code")}
+            </span>
+            <p class="help-block">
+              As generated with google authenticator.
+            </p>
           </div>
         </div>
         <div class="form-actions">
