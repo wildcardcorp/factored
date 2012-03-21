@@ -3,7 +3,7 @@ import sys, os
 
 version = '0.0'
 
-setup(name='twofactor',
+setup(name='factored',
       version=version,
       description="",
       long_description="",
@@ -34,12 +34,12 @@ setup(name='twofactor',
       entry_points="""
       # -*- Entry points: -*-
       [paste.app_factory]
-      main = twofactor.auth:Authenticator
+      main = factored.auth:Authenticator
 
       [console_scripts]
-      initialize_db = twofactor.scripts.initializedb:main
-      adduser = twofactor.scripts.users:add
-      removeuser = twofactor.scripts.users:remove
-      listusers = twofactor.scripts.users:listusers
+      initialize_db = factored.scripts.initializedb:main
+      adduser = factored.scripts.users:add
+      removeuser = factored.scripts.users:remove
+      listusers = factored.scripts.users:listusers
       """,
       )

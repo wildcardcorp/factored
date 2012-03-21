@@ -4,8 +4,8 @@ import argparse
 from sqlalchemy import engine_from_config
 
 from pyramid.paster import get_appsettings, setup_logging
-from twofactor.models import DBSession, User
-from twofactor.utils import get_barcode_image, generate_code
+from factored.models import DBSession, User
+from factored.utils import get_barcode_image, generate_code
 
 
 addparser = argparse.ArgumentParser(description='Add user')

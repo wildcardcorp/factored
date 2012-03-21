@@ -4,7 +4,7 @@ import sys
 from sqlalchemy import engine_from_config
 from pyramid.paster import get_appsettings, setup_logging
 
-from twofactor.models import DBSession, Base
+from factored.models import DBSession, Base
 
 
 def usage(argv):

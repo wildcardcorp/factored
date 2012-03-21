@@ -1,7 +1,7 @@
 Introduction
 ============
 
-twofactor is a proxy application that forces authentication
+factored is a proxy application that forces authentication
 before anything is proxied.
 
 
@@ -10,10 +10,10 @@ Install
 
 using virtualenv::
 
-    virtualenv twofactor
-    cd twofactor
-    git clone git://github.com/vangheem/twofactor.git
-    cd twofactor
+    virtualenv factored
+    cd factored
+    git clone git://github.com/vangheem/factored.git
+    cd factored
     ../bin/python setup.py develop
     ../bin/initializedb develop.ini
     ../bin/adduser development.ini --username=john@foo.bar

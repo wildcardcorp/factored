@@ -5,23 +5,13 @@ from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
 from repoze.who.api import APIFactory
 from repoze.who.classifiers import default_request_classifier
 from repoze.who.classifiers import default_challenge_decider
-from twofactor.models import DBSession, User
+from factored.models import DBSession, User
 from pyramid.httpexceptions import HTTPFound
 import time
 import struct
 import hmac
 import hashlib
 import base64
-
-
-salt = 'sdks8d87uj33dfsf'
-
-
-auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt')
-identifiers = [('auth_tkt', auth_tkt)]
-authenticators = [('auth_tkt', auth_tkt)]
-challengers = []
-mdproviders = []
 
 
 def authenticate(secretkey, code_attempt):
@@ -66,7 +56,7 @@ def auth(req):
             if authenticate(user.secret, code):
                 creds = {}
                 creds['repoze.who.userid'] = name
-                creds['identifier'] = auth_tkt
+                creds['identifier'] = req.environ['auth_tkt']
                 who_api = req.environ['who_api']
                 headers = who_api.remember(creds)
                 raise HTTPFound(location='/', headers=headers)
@@ -75,17 +65,21 @@ def auth(req):
 
 class Authenticator(object):
 
-    def __init__(self, global_config, server, port, **settings):
+    def __init__(self, global_config, server, port, auth_secret, auth_name,
+                                                                 **settings):
         self.server = server
         self.port = port
-        self.who = APIFactory(identifiers, authenticators, challengers,
-            mdproviders, default_request_classifier, default_challenge_decider)
+
+        self.auth_tkt = AuthTktCookiePlugin(auth_secret, auth_name)
+        self.who = APIFactory([('auth_tkt', self.auth_tkt)],
+            [('auth_tkt', self.auth_tkt)], [], [],
+            default_request_classifier, default_challenge_decider)
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
         config = Configurator(settings=settings)
         config.add_route('auth', '/auth')
         config.add_view(auth, route_name='auth', renderer='templates/auth.pt')
-        config.add_static_view(name='authstatic', path='twofactor:static')
+        config.add_static_view(name='authstatic', path='factored:static')
         config.add_notfound_view(notfound, append_slash=True)
         self.pyramid = config.make_wsgi_app()
 
@@ -95,6 +89,7 @@ class Authenticator(object):
         return proxy_exact_request(environ, start_response)
 
     def __call__(self, environ, start_response):
+        environ['auth_tkt'] = self.auth_tkt
         who_api = self.who(environ)
         environ['who_api'] = who_api
         if who_api.authenticate():
