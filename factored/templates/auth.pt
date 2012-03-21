@@ -1,37 +1,14 @@
 <metal:main use-macro="load: layout.pt">
   <metal:content metal:fill-slot="content">
-    <h1>Auth</h1>
+    <h1>Select Authentication Type</h1>
 
-    <form class="form-horizontal" method="POST">
-      <fieldset>
-        <legend>...</legend>
-        <div class="control-group">
-          <label class="control-label" for="username">Username</label>
-          <div class="controls">
-            <input type="text" class="input-xlarge" id="usernamer" name="username" value="${username}">
-            <p class="help-block">Username you've signed up with.</p>
-          </div>
-        </div>
-        <div class="control-group">
-          <label class="control-label" for="code">Access Code</label>
-          <div class="controls">
-            <input type="password" class="input-xlarge" id="code" name="code">
-            <p class="help-block">As generated with google authenticator.</p>
-          </div>
-        </div>
-        <div class="control-group">
-          <label class="control-label" for="optionsCheckbox">Remember me</label>
-          <div class="controls">
-            <label class="checkbox">
-              <input type="checkbox" id="optionsCheckbox" value="option1">
-              Stay logged in longer.
-            </label>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Authenticate</button>
-        </div>
-      </fieldset>
-    </form>
+    <ul>
+      <tal:types tal:repeat="type auth_types">
+      <li>
+        <a class="btn" href="${type.url}">${type.name}</a>
+      </li>
+    </tal:types>
+    </ul>
+    
   </metal:content>
 </metal:main

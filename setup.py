@@ -41,5 +41,6 @@ setup(name='factored',
       adduser = factored.scripts.users:add
       removeuser = factored.scripts.users:remove
       listusers = factored.scripts.users:listusers
+      listuserinfo = factored.scripts.users:listuserinfo
       """,
       )

@@ -71,3 +71,31 @@ def listusers():
         with transaction.manager:
             for user in DBSession.query(User).all():
                 print user.username
+
+
+listuserparser = argparse.ArgumentParser(description='List user info')
+listuserparser.add_argument('config', help='configuration file')
+listuserparser.add_argument('--username', dest='username', help='username')
+
+
+def listuserinfo():
+    arguments = listuserparser.parse_args()
+    if not arguments.config or not arguments.username:
+        listuserparser.print_usage()
+    else:
+        config_uri = arguments.config
+        setup_logging(config_uri)
+        settings = get_appsettings(config_uri)
+        engine = engine_from_config(settings, 'sqlalchemy.')
+        DBSession.configure(bind=engine)
+        with transaction.manager:
+            users = DBSession.query(User).filter_by(
+                username=arguments.username).all()
+            if len(users) > 0:
+                user = users[0]
+                print 'username:%s, secret: %s' % (
+                    user.username, user.secret)
+                print 'bar code url:', get_barcode_image(user.username,
+                                                         user.secret)
+            else:
+                print '"%s" user not found' % arguments.username

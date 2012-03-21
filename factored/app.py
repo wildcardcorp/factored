@@ -5,73 +5,46 @@ from repoze.who.plugins.auth_tkt import make_plugin
 from repoze.who.api import APIFactory
 from repoze.who.classifiers import default_request_classifier
 from repoze.who.classifiers import default_challenge_decider
-from factored.models import DBSession, User
 from pyramid.httpexceptions import HTTPFound
-import time
-import struct
-import hmac
-import hashlib
-import base64
+from factored.models import DBSession
+from factored.auth import getFactoredPlugins
+import os
 
 
-def authenticate(secretkey, code_attempt):
-    tm = int(time.time() / 30)
-
-    secretkey = base64.b32decode(secretkey)
-
-    # try 30 seconds behind and ahead as well
-    for ix in [-1, 0, 1]:
-        # convert timestamp to raw bytes
-        b = struct.pack(">q", tm + ix)
-
-        # generate HMAC-SHA1 from timestamp based on secret key
-        hm = hmac.HMAC(secretkey, b, hashlib.sha1).digest()
-
-        # extract 4 bytes from digest based on LSB
-        offset = ord(hm[-1]) & 0x0F
-        truncatedHash = hm[offset:offset + 4]
-
-        # get the code from it
-        code = struct.unpack(">L", truncatedHash)[0]
-        code &= 0x7FFFFFFF
-        code %= 1000000
-
-        if ("%06d" % code) == str(code_attempt):
-            return True
-
-    return False
+def notfound(req):
+    return HTTPFound(location=req.environ['settings']['base_auth_url'])
 
 
-def notfound(request):
-    return HTTPFound(location="/auth")
+def _tolist(val):
+    lines = val.splitlines()
+    return [l.strip() for l in lines]
 
 
-def auth(req):
-    if req.method == "POST":
-        name = req.params.get('username')
-        code = req.params.get('code')
-        user = DBSession.query(User).filter_by(username=name).all()
-        if len(user) > 0:
-            user = user[0]
-            if authenticate(user.secret, code):
-                creds = {}
-                creds['repoze.who.userid'] = name
-                creds['identifier'] = req.environ['auth_tkt']
-                who_api = req.environ['who_api']
-                headers = who_api.remember(creds)
-                raise HTTPFound(location='/', headers=headers)
-    return {'username': req.params.get('username', '')}
+def auth_chooser(req):
+    auth_types = []
+    settings = req.environ['settings']
+    supported_types = settings['supported_auth_schemes']
+    for plugin in getFactoredPlugins():
+        if plugin.name in supported_types:
+            auth_types.append({
+                'name': plugin.name,
+                'url': os.path.join(settings['base_auth_url'], plugin.path)
+                })
+    return {'auth_types': auth_types}
 
 
 class Authenticator(object):
 
     def __init__(self, global_config, server, port, auth_secret,
-                    auth_cookie_name="auth", auth_url='/auth',
+                    auth_cookie_name="auth", base_auth_url='/auth',
                     auth_secure=False, auth_include_ip=False,
                     auth_timeout=12345, auth_reissue_time=1234,
+                    supported_auth_schemes="Google Auth",
                     **settings):
         self.server = server
         self.port = port
+        self.supported_auth_schemes = _tolist(supported_auth_schemes)
+        self.base_auth_url = base_auth_url
 
         self.auth_tkt = make_plugin(
             secret=auth_secret, cookie_name=auth_cookie_name,
@@ -84,8 +57,14 @@ class Authenticator(object):
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
         config = Configurator(settings=settings)
-        config.add_route('auth', auth_url)
-        config.add_view(auth, route_name='auth', renderer='templates/auth.pt')
+        for plugin in getFactoredPlugins():
+            config.add_route(plugin.name, os.path.join(base_auth_url,
+                                                       plugin.path))
+            config.add_view(plugin.view, **plugin.view_config)
+        config.add_route('auth', base_auth_url)
+        config.add_view(auth_chooser, route_name='auth',
+            renderer='templates/auth.pt')
+
         config.add_static_view(name='authstatic', path='factored:static')
         config.add_notfound_view(notfound, append_slash=True)
         self.pyramid = config.make_wsgi_app()
@@ -96,7 +75,7 @@ class Authenticator(object):
         return proxy_exact_request(environ, start_response)
 
     def __call__(self, environ, start_response):
-        environ['auth_tkt'] = self.auth_tkt
+        environ['settings'] = self.__dict__
         who_api = self.who(environ)
         environ['who_api'] = who_api
         if who_api.authenticate():
