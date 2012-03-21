@@ -7,49 +7,59 @@ from repoze.who.classifiers import default_request_classifier
 from repoze.who.classifiers import default_challenge_decider
 from pyramid.httpexceptions import HTTPFound
 from factored.models import DBSession
-from factored.auth import getFactoredPlugins
+from factored.auth import getFactoredPlugins, getFactoredPlugin
 import os
+from pyramid_mailer.mailer import Mailer
 
 
 def notfound(req):
-    return HTTPFound(location=req.environ['settings']['base_auth_url'])
+    return HTTPFound(location=req.registry['settings']['base_auth_url'])
 
 
 def _tolist(val):
     lines = val.splitlines()
-    return [l.strip() for l in lines]
+    return [l.strip() for l in lines if l.strip()]
 
 
 def auth_chooser(req):
     auth_types = []
-    settings = req.environ['settings']
+    settings = req.registry['settings']
+    base_path = settings['base_auth_url']
     supported_types = settings['supported_auth_schemes']
+    if len(supported_types) == 1:
+        plugin = getFactoredPlugin(supported_types[0])
+        raise HTTPFound(location="%s/%s" % (base_path, plugin.path))
     for plugin in getFactoredPlugins():
         if plugin.name in supported_types:
             auth_types.append({
                 'name': plugin.name,
-                'url': os.path.join(settings['base_auth_url'], plugin.path)
+                'url': os.path.join(base_path, plugin.path)
                 })
     return {'auth_types': auth_types}
 
 
+def get_settings(config, prefix):
+    settings = {}
+    for key, val in config.items():
+        if key.startswith(prefix):
+            settings[key[len(prefix):]] = val
+    return settings
+
+
 class Authenticator(object):
 
-    def __init__(self, global_config, server, port, auth_secret,
-                    auth_cookie_name="auth", base_auth_url='/auth',
-                    auth_secure=False, auth_include_ip=False,
-                    auth_timeout=12345, auth_reissue_time=1234,
+    def __init__(self, global_config, server, port, base_auth_url='/auth',
                     supported_auth_schemes="Google Auth",
+                    email_auth_window='120',
                     **settings):
         self.server = server
         self.port = port
         self.supported_auth_schemes = _tolist(supported_auth_schemes)
         self.base_auth_url = base_auth_url
+        self.email_auth_window = int(email_auth_window)
 
-        self.auth_tkt = make_plugin(
-            secret=auth_secret, cookie_name=auth_cookie_name,
-            secure=auth_secure, include_ip=auth_include_ip,
-            timeout=auth_timeout, reissue_time=auth_reissue_time)
+        self.auth_tkt = make_plugin(**get_settings(settings, 'auth_tkt.'))
+        self.email_auth_settings = get_settings(settings, 'email_auth.')
 
         self.who = APIFactory([('auth_tkt', self.auth_tkt)],
             [('auth_tkt', self.auth_tkt)], [], [],
@@ -67,6 +77,10 @@ class Authenticator(object):
 
         config.add_static_view(name='authstatic', path='factored:static')
         config.add_notfound_view(notfound, append_slash=True)
+
+        # add some things to registry
+        config.registry['mailer'] = Mailer.from_settings(settings)
+        config.registry['settings'] = self.__dict__
         self.pyramid = config.make_wsgi_app()
 
     def proxy(self, environ, start_response):
@@ -75,7 +89,6 @@ class Authenticator(object):
         return proxy_exact_request(environ, start_response)
 
     def __call__(self, environ, start_response):
-        environ['settings'] = self.__dict__
         who_api = self.who(environ)
         environ['who_api'] = who_api
         if who_api.authenticate():

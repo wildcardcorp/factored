@@ -30,7 +30,8 @@ setup(name='factored',
           'pyramid_tm',
           'pyramid_debugtoolbar',
           'zope.sqlalchemy',
-          'pyramid_simpleform'
+          'pyramid_simpleform',
+          'pyramid_mailer'
       ],
       entry_points="""
       # -*- Entry points: -*-

@@ -1,9 +1,17 @@
+from datetime import datetime
+from hashlib import sha1
 import os
 import base64
+import random
 
 
-def generate_code():
-    return base64.b32encode(os.urandom(10))
+def generate_code(length=10):
+    return base64.b32encode(os.urandom(length))
+
+
+def make_random_code(length=255):
+    return sha1(sha1(str(random.random())).
+        hexdigest()[:5] + str(datetime.now().microsecond)).hexdigest()[:length]
 
 
 def get_barcode_image(username, secretkey):
