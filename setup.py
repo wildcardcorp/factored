@@ -9,7 +9,7 @@ setup(name='factored',
                        open("CHANGES.txt").read(),
       classifiers=[
         'Topic :: Internet :: WWW/HTTP :: WSGI',
-        'Topic :: Internet :: WWW/HTTP :: WSGI :: Application'
+        'Topic :: Internet :: WWW/HTTP :: WSGI :: Application',
         'Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware'],
       keywords='mutli factor authentication 2factor mutl-factor '
                'auth auth_tkt google otp',
