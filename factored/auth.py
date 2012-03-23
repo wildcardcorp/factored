@@ -1,8 +1,4 @@
 import time
-import struct
-import hmac
-import hashlib
-import base64
 from factored.models import DBSession, User
 from pyramid.httpexceptions import HTTPFound
 from pyramid_simpleform import Form
@@ -12,6 +8,7 @@ from pyramid_mailer.message import Message
 from factored.utils import make_random_code
 from datetime import datetime
 from datetime import timedelta
+from factored.utils import get_google_auth_code
 
 _auth_plugins = []
 
@@ -54,7 +51,7 @@ def get_authorize_headers(req, username):
 
 class GoogleAuthSchema(BaseSchema):
 
-    username = validators.MinLength(5, not_empty=True)
+    username = validators.MinLength(3, not_empty=True)
     code = validators.Int(not_empty=True)
 
 
@@ -62,29 +59,11 @@ class GoogleAuthForm(Form):
 
     def authenticate(self, secretkey, code_attempt):
         tm = int(time.time() / 30)
-
-        secretkey = base64.b32decode(secretkey)
-
         # try 30 seconds behind and ahead as well
         for ix in [-1, 0, 1]:
-            # convert timestamp to raw bytes
-            b = struct.pack(">q", tm + ix)
-
-            # generate HMAC-SHA1 from timestamp based on secret key
-            hm = hmac.HMAC(secretkey, b, hashlib.sha1).digest()
-
-            # extract 4 bytes from digest based on LSB
-            offset = ord(hm[-1]) & 0x0F
-            truncatedHash = hm[offset:offset + 4]
-
-            # get the code from it
-            code = struct.unpack(">L", truncatedHash)[0]
-            code &= 0x7FFFFFFF
-            code %= 1000000
-
-            if ("%06d" % code) == str(code_attempt):
+            code = get_google_auth_code(secretkey, tm + ix)
+            if code == str(code_attempt):
                 return True
-
         return False
 
 
@@ -129,7 +108,7 @@ def email_auth_view(req):
     cform = EmailAuthForm(req, schema=EmailAuthCodeSchema)
     send_submitted = validate_submitted = False
     if req.method == "POST":
-        if req.params.get('submit', '') == 'Send mail':
+        if req.POST.get('submit', '') == 'Send mail':
             if eform.validate():
                 username = eform.data['username']
                 user = DBSession.query(User).filter_by(
@@ -149,7 +128,7 @@ def email_auth_view(req):
                     message['body'] = message['body'].replace('{code}',
                         user.generated_code)
                     mailer.send(Message(**message))
-        elif req.params.get('submit', '') == 'Authenticate':
+        elif req.POST.get('submit', '') == 'Authenticate':
             validate_submitted = True
             if cform.validate():
                 user = DBSession.query(User).filter_by(
