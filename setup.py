@@ -36,6 +36,9 @@ setup(name='factored',
       entry_points="""
       # -*- Entry points: -*-
       [paste.app_factory]
+      proxy = factored.app:Proxy
+
+      [paste.filter_app_factory]
       main = factored.app:Authenticator
 
       [console_scripts]

@@ -48,12 +48,11 @@ def get_settings(config, prefix):
 
 class Authenticator(object):
 
-    def __init__(self, global_config, server, port, base_auth_url='/auth',
+    def __init__(self, app, global_config, base_auth_url='/auth',
                     supported_auth_schemes="Google Auth",
                     email_auth_window='120',
                     **settings):
-        self.server = server
-        self.port = port
+        self.app = app
         self.supported_auth_schemes = _tolist(supported_auth_schemes)
         self.base_auth_url = base_auth_url
         self.email_auth_window = int(email_auth_window)
@@ -83,15 +82,22 @@ class Authenticator(object):
         config.registry['settings'] = self.__dict__
         self.pyramid = config.make_wsgi_app()
 
-    def proxy(self, environ, start_response):
-        environ['SERVER_NAME'] = self.server
-        environ['SERVER_PORT'] = self.port
-        return proxy_exact_request(environ, start_response)
-
     def __call__(self, environ, start_response):
         who_api = self.who(environ)
         environ['who_api'] = who_api
         if who_api.authenticate():
-            return self.proxy(environ, start_response)
+            return self.app(environ, start_response)
         else:
             return self.pyramid(environ, start_response)
+
+
+class Proxy(object):
+
+    def __init__(self, global_config, server, port):
+        self.server = server
+        self.port = port
+
+    def __call__(self, environ, start_response):
+        environ['SERVER_NAME'] = self.server
+        environ['SERVER_PORT'] = self.port
+        return proxy_exact_request(environ, start_response)
