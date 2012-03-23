@@ -30,4 +30,34 @@ Must follow the example develop.ini provided.
 Edit server and port settings for application server.
 
 
+Nginx Example Configuration
+---------------------------
+An example setup with nginx and load balancing::
+
+    server {
+        listen  80;
+        server_name www.test.com;
+        include proxy.conf;
+
+        # paths to protect
+        location ~ ^/admin.* {
+            proxy_pass http://127.0.0.1:8000;
+        }
+
+        location / {
+            proxy_pass http://app;
+        }
+    }
+
+    server {
+        listen 8090;
+        include proxy.conf;
+        location / {
+            proxy_pass http://app;
+        }
+    }
+
+
+Then factored would be configured to run on port 8000 and proxy
+to 8090.
 
