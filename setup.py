@@ -44,7 +44,7 @@ setup(name='factored',
       main = factored.app:Authenticator
 
       [console_scripts]
-      initialize_db = factored.scripts.initializedb:main
+      initializedb = factored.scripts.initializedb:main
       adduser = factored.scripts.users:add
       removeuser = factored.scripts.users:remove
       listusers = factored.scripts.users:listusers
