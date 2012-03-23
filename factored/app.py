@@ -91,7 +91,7 @@ class Authenticator(object):
             return self.pyramid(environ, start_response)
 
 
-class Proxy(object):
+class SimpleProxy(object):
 
     def __init__(self, global_config, server, port):
         self.server = server

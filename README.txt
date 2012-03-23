@@ -1,8 +1,10 @@
 Introduction
 ============
 
-factored is a proxy application that forces authentication
-before anything is proxied.
+factored is a wsgi application that forces authentication
+before is passed to the wsgi application.
+
+This can also be used as a proxy for non-wsgi apps.
 
 
 Install
