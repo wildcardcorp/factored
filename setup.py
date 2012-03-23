@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '0.1'
+version = '1.0a1'
 
 setup(name='factored',
       version=version,
@@ -11,7 +11,8 @@ setup(name='factored',
         'Topic :: Internet :: WWW/HTTP :: WSGI',
         'Topic :: Internet :: WWW/HTTP :: WSGI :: Application'
         'Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware'],
-      keywords='mutli factor authentication 2factor mutl-factor auth auth_tkt',
+      keywords='mutli factor authentication 2factor mutl-factor '
+               'auth auth_tkt google otp',
       author='Nathan Van Gheem',
       author_email='vangheem@gmail.com',
       url='http://github.com/vangheem/factored',
