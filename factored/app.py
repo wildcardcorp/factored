@@ -10,6 +10,7 @@ from factored.models import DBSession
 from factored.auth import getFactoredPlugins, getFactoredPlugin
 import os
 from pyramid_mailer.mailer import Mailer
+from factored.utils import get_context
 
 
 def notfound(req):
@@ -35,7 +36,7 @@ def auth_chooser(req):
                 'name': plugin.name,
                 'url': os.path.join(base_path, plugin.path)
                 })
-    return {'auth_types': auth_types}
+    return get_context(req, auth_types=auth_types)
 
 
 def get_settings(config, prefix):
@@ -74,7 +75,9 @@ class Authenticator(object):
         config.add_view(auth_chooser, route_name='auth',
             renderer='templates/auth.pt')
 
-        config.add_static_view(name='authstatic', path='factored:static')
+        self.static_path = os.path.join(base_auth_url, 'authstatic')
+        config.add_static_view(name=self.static_path,
+                               path='factored:static')
         config.add_notfound_view(notfound, append_slash=True)
 
         # add some things to registry

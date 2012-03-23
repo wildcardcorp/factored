@@ -9,6 +9,7 @@ from factored.utils import make_random_code
 from datetime import datetime
 from datetime import timedelta
 from factored.utils import get_google_auth_code
+from factored.utils import get_context
 
 _auth_plugins = []
 
@@ -82,7 +83,7 @@ def google_auth_view(req):
                 form.errors['code'] = u'Code did not validate'
                 form.data['code'] = u''
 
-    return {'form': FormRenderer(form)}
+    return get_context(req, form=FormRenderer(form))
 
 
 addFactoredPlugin('Google Auth', 'ga', google_auth_view,
@@ -147,12 +148,9 @@ def email_auth_view(req):
                     else:
                         cform.errors['code'] = u'Code did not validate'
                         cform.data['code'] = u''
-    return {
-        'eform': FormRenderer(eform),
-        'cform': FormRenderer(cform),
-        'send_submitted': send_submitted,
-        'validate_submitted': validate_submitted
-    }
+    return get_context(req, eform=FormRenderer(eform),
+        cform=FormRenderer(cform), send_submitted=send_submitted,
+        validate_submitted=validate_submitted)
 
 
 addFactoredPlugin('Email', 'em', email_auth_view,

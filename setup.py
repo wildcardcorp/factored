@@ -20,7 +20,6 @@ setup(name='factored',
       include_package_data=True,
       zip_safe=False,
       install_requires=[
-          # -*- Extra requirements: -*-
           'PasteDeploy',
           'PasteScript',
           'webob',

@@ -43,3 +43,8 @@ def get_google_auth_code(secretkey, tm=None):
     code &= 0x7FFFFFFF
     code %= 1000000
     return "%06d" % code
+
+
+def get_context(req, **kwargs):
+    kwargs['static_path'] = req.registry['settings']['static_path']
+    return kwargs
