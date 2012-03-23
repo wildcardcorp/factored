@@ -25,10 +25,41 @@ using virtualenv::
 
 Configuration
 -------------
-Must follow the example develop.ini provided.
+Must follow the example develop.ini provided. You'll probably want to copy
+that file into your own and change the settings.
 
-Edit server and port settings for application server.
+Edit server and port settings for application server if not using with another
+wsgi application.
 
+
+Paste configuration options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+auth_tkt. prefixed options
+    Configuration options that are passed directly into repoze.who's auth_tkt
+    plugin.
+base_auth_url
+    Base url all authentication urls and resources are based off of. Useful if
+    you're only looking to authenticate a portion of a site.
+supported_auth_schemes
+    Supported authentication schemes.
+email_auth_window
+    If using email authentication, the window of time the user has to enter
+    correct code in.
+email_auth.subject
+    Email authencation subject used.
+email_auth.sender
+    Email authentication from address.
+email_auth.body
+    Email Authentication text body. `{code}` will be replaced with the code.
+pyramid. prefixed options
+    Configuration passed directly into pyramid configuration.
+sqlalchemy.url
+    Connection string for sql backend. Most configurations will work fine
+    with normal sqlite.
+mail. prefixed options
+    Configuration passed directly to the mailer plugin. Options can be found at
+    http://packages.python.org/pyramid_mailer/#configuration
 
 Nginx Example Configuration
 ---------------------------
@@ -61,3 +92,57 @@ An example setup with nginx and load balancing::
 Then factored would be configured to run on port 8000 and proxy
 to 8090.
 
+
+Sample Paste Configuration
+--------------------------
+An example to follow if you're not using a git checkout::
+
+    [app:proxy]
+    use = egg:factored#simpleproxy
+    server = 127.0.0.1
+    port = 8090
+
+    [filter-app:main]
+    use = egg:factored#main
+    next = proxy
+
+    auth_tkt.secret = &djskj37sdk23jD*S8xee
+    auth_tkt.cookie_name = factored
+    auth_tkt.secure = false
+    auth_tkt.include_ip = true
+    auth_tkt.timeout = 12345
+    auth_tkt.reissue_time = 1234
+
+    base_auth_url = /auth
+    supported_auth_schemes = 
+        Google Auth
+        Email
+
+    email_auth_window = 120
+    # in seconds
+    email_auth.subject = Authentication Request
+    email_auth.sender = foo@bar.com
+    email_auth.body = 
+        You have requested authentication.
+        You're temporary access code is: {code}
+
+    pyramid.reload_templates = true
+    pyramid.debug_authorization = true
+    pyramid.debug_notfound = true
+    pyramid.debug_routematch = true
+    pyramid.default_locale_name = en
+    pyramid.includes =
+        pyramid_tm
+        pyramid_mailer
+
+    sqlalchemy.url = sqlite:///%(here)s/test.db
+
+    # all mail settings can be found at http://packages.python.org/pyramid_mailer/#configuration
+    mail.host = localhost
+    mail.port = 25
+
+    [server:main]
+    use = egg:Paste#http
+    # Change to 0.0.0.0 to make public:
+    host = 127.0.0.1
+    port = 8000
