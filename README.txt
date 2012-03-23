@@ -90,7 +90,7 @@ An example setup with nginx and load balancing::
 
 
 Then factored would be configured to run on port 8000 and proxy
-to 8090.
+to 8090 and have `base_auth_url` url set to /admin/auth.
 
 
 Sample Paste Configuration
@@ -106,7 +106,7 @@ An example to follow if you're not using a git checkout::
     use = egg:factored#main
     next = proxy
 
-    auth_tkt.secret = &djskj37sdk23jD*S8xee
+    auth_tkt.secret = REPLACEME
     auth_tkt.cookie_name = factored
     auth_tkt.secure = false
     auth_tkt.include_ip = true
@@ -146,3 +146,15 @@ An example to follow if you're not using a git checkout::
     # Change to 0.0.0.0 to make public:
     host = 127.0.0.1
     port = 8000
+
+
+With Gunicorn
+-------------
+
+Install::
+
+    ../bin/easy_install gunicorn
+
+to run::
+
+    ../bin/gunicorn_paste --workers=2 develop.ini
