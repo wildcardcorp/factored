@@ -1,14 +1,50 @@
 <metal:main use-macro="load: layout.pt">
   <metal:content metal:fill-slot="content">
-    <h1>Select Authentication Type</h1>
+    <h1>${form_title}</h1>
 
-    <ul>
-      <tal:types tal:repeat="type auth_types">
-      <li>
-        <a class="btn" href="${type.url}">${type.name}</a>
-      </li>
-    </tal:types>
-    </ul>
-    
+    <form class="form-horizontal" method="POST">
+      <fieldset>
+        <legend>${form_legend}</legend>
+        <tal:email tal:condition="python: not send_submitted and not validate_submitted">
+          <div class="control-group" tal:define="error python: 'username' in uform.form.errors"
+              tal:attributes="class python: error and 'error control-group' or 'control-group'">
+            <label class="control-label" for="username">${form_username_label}</label>
+            <div class="controls">
+              ${uform.text("username", size=30)}
+              <span class="help-inline" tal:condition="error">
+                ${uform.errorlist("username")}
+              </span>
+              <p class="help-block">
+                ${form_username_desc}
+              </p>
+            </div>
+          </div>
+        </tal:email>
+        <tal:code tal:condition="python: send_submitted or validate_submitted">
+          ${cform.hidden("username", size=30)}
+          <div class="control-group" tal:define="error python: 'code' in cform.form.errors"
+              tal:attributes="class python: error and 'error control-group' or 'control-group'">
+            <label class="control-label" for="code">${form_code_label}</label>
+            <div class="controls">
+              ${cform.password("code", size=10)}
+              <span class="help-inline" tal:condition="error">
+                ${cform.errorlist("code")}
+              </span>
+              <p class="help-block">
+                ${form_code_desc}
+              </p>
+            </div>
+          </div>
+        </tal:code>
+        <div class="form-actions">
+          <tal:email tal:condition="python: not send_submitted and not validate_submitted">
+            <input type="submit" name="submit" class="btn btn-primary" value="${form_button_username}" />
+          </tal:email>
+          <tal:code tal:condition="python: send_submitted or validate_submitted">
+            <input type="submit" name="submit" name="submit" class="btn btn-primary" value="${form_button_authenticate}" />
+          </tal:code
+        </div>
+      </fieldset>
+    </form>
   </metal:content>
 </metal:main

@@ -4,7 +4,8 @@ version = '1.0a1'
 
 setup(name='factored',
       version=version,
-      description="",
+      description="A WSGI app that allows you to add another factor of "
+                  "authentication to any application server.",
       long_description=open("README.txt").read() + "\n" +
                        open("CHANGES.txt").read(),
       classifiers=[
@@ -24,7 +25,6 @@ setup(name='factored',
           'PasteDeploy',
           'PasteScript',
           'webob',
-          'gunicorn',
           'WSGIProxy',
           'repoze.who',
           'pyramid',
