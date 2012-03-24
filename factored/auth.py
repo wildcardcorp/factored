@@ -76,62 +76,43 @@ class BaseAuthView(object):
     def get_user(self, username):
         return DBSession.query(User).filter_by(username=username).first()
 
-    def on_user_form_submitted_success(self, user):
-        self.send_submitted = True
-
-    def on_user_form_submitted_invalid_user(self):
-        self.uform.errors['username'] = self.error_invalid_username
-
-    def on_user_form_submitted(self):
-        if self.uform.validate():
-            username = self.uform.data['username']
-            self.cform.data['username'] = username
-            user = self.get_user(username)
-            if user is None:
-                self.on_user_form_submitted_invalid_user()
-            else:
-                self.on_user_form_submitted_success(user)
-
-    def on_code_form_submitted_invalid_user(self):
-        self.cform.errors['code'] = self.error_invalid_username_code
-
-    def on_code_submitted_successfully(self):
-        creds = {}
-        creds['repoze.who.userid'] = self.cform.data['username']
-        creds['identifier'] = self.req.registry['settings']['auth_tkt']
-        who_api = self.req.environ['who_api']
-        headers = who_api.remember(creds)
-        raise HTTPFound(location='/', headers=headers)
-
     def check_code(self, user):
         return False
-
-    def on_code_submitted_failure(self):
-        self.cform.errors['code'] = self.error_invalid_code
-        self.cform.data['code'] = u''
-
-    def on_code_form_submitted_valid_user(self, user):
-        if self.check_code(user):
-            self.on_code_submitted_successfully()
-        else:
-            self.on_code_submitted_failure()
-
-    def on_code_form_submitted(self):
-        self.validate_submitted = True
-        if self.cform.validate():
-            user = self.get_user(self.cform.data['username'])
-            if user is None:
-                self.on_code_form_submitted_invalid_user()
-            else:
-                self.on_code_form_submitted_valid_user(user)
 
     def __call__(self):
         req = self.req
         if req.method == "POST":
             if req.POST.get('submit', '') == self.form_button_username:
-                self.on_user_form_submitted()
+                if self.uform.validate():
+                    username = self.uform.data['username']
+                    self.cform.data['username'] = username
+                    user = self.get_user(username)
+                    if user is None:
+                        self.uform.errors['username'] = \
+                            self.error_invalid_username
+                    else:
+                        self.send_submitted = True
+                        self.user_form_submitted_successfully(user)
             elif req.POST.get('submit', '') == self.form_button_authenticate:
-                self.on_code_form_submitted()
+                self.validate_submitted = True
+                if self.cform.validate():
+                    user = self.get_user(self.cform.data['username'])
+                    if user is None:
+                        self.cform.errors['code'] = \
+                            self.error_invalid_username_code
+                    else:
+                        if self.check_code(user):
+                            creds = {}
+                            creds['repoze.who.userid'] = \
+                                self.cform.data['username']
+                            creds['identifier'] = \
+                                self.req.registry['settings']['auth_tkt']
+                            who_api = self.req.environ['who_api']
+                            headers = who_api.remember(creds)
+                            raise HTTPFound(location='/', headers=headers)
+                        else:
+                            self.cform.errors['code'] = self.error_invalid_code
+                            self.cform.data['code'] = u''
         return get_context(req, uform=FormRenderer(self.uform),
             cform=FormRenderer(self.cform), send_submitted=self.send_submitted,
             validate_submitted=self.validate_submitted,
@@ -195,8 +176,7 @@ class EmailAuthView(BaseAuthView):
 
     form_button_username = u'Send mail'
 
-    def on_user_form_submitted_success(self, user):
-        self.send_submitted = True
+    def user_form_submitted_successfully(self, user):
         username = self.uform.data['username']
         mailer = self.req.registry['mailer']
         user.generated_code = make_random_code(12)
