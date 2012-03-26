@@ -16,10 +16,9 @@ import urllib
 
 
 def notfound(req):
-    url = urllib.urlencode({'referrer': req.url})
     return HTTPFound(location="%s?%s" % (
         req.registry['settings']['base_auth_url'],
-        url))
+        urllib.urlencode({'referrer': req.url})))
 
 
 def _tolist(val):
@@ -34,7 +33,10 @@ def auth_chooser(req):
     supported_types = settings['supported_auth_schemes']
     if len(supported_types) == 1:
         plugin = getFactoredPlugin(supported_types[0])
-        raise HTTPFound(location="%s/%s" % (base_path, plugin.path))
+        referrer = urllib.urlencode(
+            {'referrer': req.params.get('referrer', '')})
+        raise HTTPFound(location="%s/%s?%s" % (base_path, plugin.path,
+                                               referrer))
     for plugin in getFactoredPlugins():
         if plugin.name in supported_types:
             auth_types.append({

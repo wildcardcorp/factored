@@ -214,4 +214,5 @@ to run::
 TODO
 ----
 
-- stayed logged in for `x` amount of seconds button configurable
+- be able to also logout of factored
+    - listen for logout url in request to also handle.
