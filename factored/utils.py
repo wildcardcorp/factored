@@ -48,3 +48,11 @@ def get_google_auth_code(secretkey, tm=None):
 def get_context(req, **kwargs):
     kwargs['static_path'] = req.registry['settings']['static_path']
     return kwargs
+
+
+def create_user(username):
+    from factored.models import DBSession, User
+    secret = generate_random_google_code()
+    user = User(username=username, secret=secret)
+    DBSession.add(user)
+    return user

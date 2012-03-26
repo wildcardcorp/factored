@@ -5,7 +5,8 @@ from sqlalchemy import engine_from_config
 
 from pyramid.paster import get_appsettings, setup_logging
 from factored.models import DBSession, User
-from factored.utils import get_barcode_image, generate_random_google_code
+from factored.utils import get_barcode_image
+from factored.utils import create_user
 
 
 addparser = argparse.ArgumentParser(description='Add user')
@@ -24,12 +25,10 @@ def add():
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
         with transaction.manager:
-            secret = generate_random_google_code()
             username = arguments.username
-            model = User(username=username, secret=secret)
-            DBSession.add(model)
-            print 'barcode url:', get_barcode_image(username, secret)
-            print 'secret:', secret
+            user = create_user(username)
+            print 'barcode url:', get_barcode_image(username, user.secret)
+            print 'secret:', user.secret
 
 removeparser = argparse.ArgumentParser(description='Remove user')
 removeparser.add_argument('config', help='configuration file')

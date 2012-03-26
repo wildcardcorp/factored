@@ -10,6 +10,7 @@ from datetime import datetime
 from datetime import timedelta
 from factored.utils import get_google_auth_code
 from factored.utils import get_context
+from factored.utils import create_user
 
 _auth_plugins = []
 
@@ -74,7 +75,13 @@ class BaseAuthView(object):
         self.send_submitted = self.validate_submitted = False
 
     def get_user(self, username):
-        return DBSession.query(User).filter_by(username=username).first()
+        user = DBSession.query(User).filter_by(username=username).first()
+        if user is None:
+            if 'userfinder' in self.req.registry['settings']:
+                finder = self.req.registry['settings']['userfinder']
+                if finder(username):
+                    return create_user(username)
+        return user
 
     def check_code(self, user):
         return False

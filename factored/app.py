@@ -8,6 +8,7 @@ from repoze.who.classifiers import default_challenge_decider
 from pyramid.httpexceptions import HTTPFound
 from factored.models import DBSession
 from factored.auth import getFactoredPlugins, getFactoredPlugin
+from factored.finders import getUserFinderPlugin
 import os
 from pyramid_mailer.mailer import Mailer
 from factored.utils import get_context
@@ -64,8 +65,20 @@ class Authenticator(object):
         self.who = APIFactory([('auth_tkt', self.auth_tkt)],
             [('auth_tkt', self.auth_tkt)], [], [],
             default_request_classifier, default_challenge_decider)
+
+        # db configuration
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
+
+        finder_name = settings.get('autouserfinder', None)
+        if finder_name:
+            plugin = getUserFinderPlugin(finder_name)
+            if plugin:
+                self.userfinder = plugin(**get_settings(settings,
+                    'autouserfinder.'))
+            else:
+                raise Exception('User finder not found: %s', finder_name)
+
         config = Configurator(settings=settings)
         for plugin in getFactoredPlugins():
             config.add_route(plugin.name, os.path.join(base_auth_url,
