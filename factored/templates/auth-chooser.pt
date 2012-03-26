@@ -5,7 +5,10 @@
     <ul>
       <tal:types tal:repeat="type auth_types">
       <li>
-        <a class="btn" href="${type.url}">${type.name}</a>
+        <form method="get" action="${type.url}">
+          <input type="hidden" name="referrer" value="${referrer}" />
+          <input type="submit" name="submit" class="btn btn-primary" value="${type.name}" />
+        </form>
       </li>
     </tal:types>
     </ul>

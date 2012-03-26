@@ -19,6 +19,7 @@
               </p>
             </div>
           </div>
+          ${uform.hidden("referrer")}
         </tal:email>
         <tal:code tal:condition="python: send_submitted or validate_submitted">
           <div class="control-group" tal:define="error python: 'code' in cform.form.errors"
@@ -34,7 +35,8 @@
               </p>
             </div>
           </div>
-          ${cform.hidden("username", size=30)}
+          ${cform.hidden("username")}
+          ${cform.hidden("referrer")}
         </tal:code>
         <div class="form-actions">
           <tal:email tal:condition="python: not send_submitted and not validate_submitted">

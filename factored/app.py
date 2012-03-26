@@ -12,10 +12,14 @@ from factored.finders import getUserFinderPlugin
 import os
 from pyramid_mailer.mailer import Mailer
 from factored.utils import get_context
+import urllib
 
 
 def notfound(req):
-    return HTTPFound(location=req.registry['settings']['base_auth_url'])
+    url = urllib.urlencode({'referrer': req.url})
+    return HTTPFound(location="%s?%s" % (
+        req.registry['settings']['base_auth_url'],
+        url))
 
 
 def _tolist(val):
@@ -37,7 +41,8 @@ def auth_chooser(req):
                 'name': plugin.name,
                 'url': os.path.join(base_path, plugin.path)
                 })
-    return get_context(req, auth_types=auth_types)
+    return get_context(req, auth_types=auth_types,
+                            referrer=req.params.get('referrer', ''))
 
 
 def get_settings(config, prefix):

@@ -36,13 +36,14 @@ def getFactoredPlugin(name):
 
 
 class UsernameSchema(BaseSchema):
-
     username = validators.MinLength(3, not_empty=True)
+    referrer = validators.MinLength(0)
 
 
 class CodeSchema(BaseSchema):
     username = validators.MinLength(3, not_empty=True)
     code = validators.MinLength(4, not_empty=True)
+    referrer = validators.MinLength(0)
 
 
 class BaseAuthView(object):
@@ -144,10 +145,17 @@ class BaseAuthView(object):
                                 self.req.registry['settings']['auth_tkt']
                             who_api = self.req.environ['who_api']
                             headers = who_api.remember(creds)
-                            raise HTTPFound(location='/', headers=headers)
+                            referrer = self.cform.data.get('referrer')
+                            if not referrer:
+                                referrer = '/'
+                            raise HTTPFound(location=referrer, headers=headers)
                         else:
                             self.cform.errors['code'] = self.error_invalid_code
                             self.cform.data['code'] = u''
+        referrer = self.cform.data.get('referrer',
+            self.uform.data.get('referrer', req.params.get('referrer', '')))
+        self.uform.data.update({'referrer': referrer})
+        self.cform.data.update({'referrer': referrer})
         return get_context(req, uform=FormRenderer(self.uform),
             cform=FormRenderer(self.cform), send_submitted=self.send_submitted,
             validate_submitted=self.validate_submitted,
@@ -188,13 +196,14 @@ addFactoredPlugin(GoogleAuthView)
 
 
 class EmailAuthSchema(BaseSchema):
-
     username = validators.Email(not_empty=True)
+    referrer = validators.MinLength(0)
 
 
 class EmailAuthCodeSchema(BaseSchema):
     username = validators.Email(not_empty=True)
     code = validators.MinLength(8, not_empty=True)
+    referrer = validators.MinLength(0)
 
 
 class EmailAuthView(BaseAuthView):

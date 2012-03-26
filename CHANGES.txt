@@ -6,6 +6,9 @@ Changelog
 
 - specify appname to customize google auth code entry.
 
+- redirect to original url if possible
+
+
 1.1a1 (2012-03-26)
 ------------------
 
