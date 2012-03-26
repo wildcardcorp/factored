@@ -18,9 +18,9 @@ using virtualenv::
     cd factored
     ../bin/python setup.py develop
     ../bin/initializedb develop.ini
-    ../bin/adduser development.ini --username=john@foo.bar
+    ../bin/adduser develop.ini --username=john@foo.bar
     ../bin/paster serve develop.ini
-    ../bin/removeuser development.ini --username=john@foo.bar
+    ../bin/removeuser develop.ini --username=john@foo.bar
 
 
 Configuration
