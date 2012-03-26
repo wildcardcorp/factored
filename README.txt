@@ -204,3 +204,10 @@ Install::
 to run::
 
     ../bin/gunicorn_paste --workers=2 develop.ini
+
+
+TODO
+----
+
+- stayed logged in for `x` amount of seconds button configurable
+- auto redirect to original url
