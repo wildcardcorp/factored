@@ -1,6 +1,15 @@
 Changelog
 =========
 
+1.1a1 (2012-03-26)
+------------------
+
+- add auto user finder support
+
+- add ability to send google code reminders. This
+  can work well with the autouserfinder
+
+
 1.0a1 (2012-03-23)
 ------------------
 
