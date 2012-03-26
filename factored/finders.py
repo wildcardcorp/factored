@@ -36,10 +36,10 @@ class SQLUserFinder(object):
     def __call__(self, username):
         select = 'select %s from %s where %s=?' % (self.email_field,
             self.table_name, self.email_field)
-        engine = self.egine
+        engine = self.engine
         if engine.driver == 'mysqldb':
             select = select.replace('?', '%s')
-        res = self.engine.execute(select, username)
+        res = engine.execute(select, username)
         return len(res.fetchall()) > 0
 addUserFinderPlugin(SQLUserFinder)
 
