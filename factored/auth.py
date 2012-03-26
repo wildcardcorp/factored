@@ -114,7 +114,8 @@ class BaseAuthView(object):
                     message = self.googleauthcodereminder_settings.copy()
                     message['recipients'] = [username]
                     message['body'] = message['body'].replace('{code}',
-                        get_barcode_image(username, user.secret))
+                        get_barcode_image(username, user.secret,
+                            self.req.registry['settings']['appname']))
                     mailer.send(Message(**message))
             elif req.POST.get('submit', '') == self.form_button_username:
                 if self.uform.validate():

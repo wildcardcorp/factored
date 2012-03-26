@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.1a2 (unreleased)
+------------------
+
+- specify appname to customize google auth code entry.
+
 1.1a1 (2012-03-26)
 ------------------
 

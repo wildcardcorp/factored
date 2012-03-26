@@ -27,7 +27,8 @@ def add():
         with transaction.manager:
             username = arguments.username
             user = create_user(username)
-            print 'barcode url:', get_barcode_image(username, user.secret)
+            print 'barcode url:', get_barcode_image(username, user.secret,
+                settings['appname'])
             print 'secret:', user.secret
 
 removeparser = argparse.ArgumentParser(description='Remove user')
@@ -95,6 +96,7 @@ def listuserinfo():
                 print 'username:%s, secret: %s' % (
                     user.username, user.secret)
                 print 'bar code url:', get_barcode_image(user.username,
-                                                         user.secret)
+                                                         user.secret,
+                                                         settings['appname'])
             else:
                 print '"%s" user not found' % arguments.username

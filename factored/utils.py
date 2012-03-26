@@ -17,9 +17,10 @@ def make_random_code(length=255):
         hexdigest()[:5] + str(datetime.now().microsecond)).hexdigest()[:length]
 
 
-def get_barcode_image(username, secretkey):
+def get_barcode_image(username, secretkey, appname):
     url = "https://www.google.com/chart"
     url += "?chs=200x200&chld=M|0&cht=qr&chl=otpauth://totp/"
+    username = username + '--' + appname
     url += username + "%3Fsecret%3D" + secretkey
     return url
 

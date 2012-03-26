@@ -53,8 +53,10 @@ class Authenticator(object):
     def __init__(self, app, global_config, base_auth_url='/auth',
                     supported_auth_schemes="Google Auth",
                     email_auth_window='120', allowgooglecodereminder='false',
+                    appname="REPLACEME",
                     **settings):
         self.app = app
+        self.appname = appname
         self.supported_auth_schemes = _tolist(supported_auth_schemes)
         self.base_auth_url = base_auth_url
         self.email_auth_window = int(email_auth_window)

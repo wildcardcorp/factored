@@ -35,6 +35,8 @@ wsgi application.
 Paste configuration options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+appname
+    Appened to google auth keys so it doesn't overwrite others.
 auth_tkt. prefixed options
     Configuration options that are passed directly into repoze.who's auth_tkt
     plugin.
@@ -136,6 +138,7 @@ An example to follow if you're not using a git checkout::
     [filter-app:main]
     use = egg:factored#main
     next = proxy
+    appname = REPLACEME
 
     auth_tkt.secret = REPLACEME
     auth_tkt.cookie_name = factored
