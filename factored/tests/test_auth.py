@@ -60,7 +60,9 @@ class BaseTest(unittest.TestCase):
             'email_auth_window': 120,
             'static_path': '/auth/static',
             'allowgooglecodereminder_settings': {},
-            'allowgooglecodereminder': False
+            'allowgooglecodereminder': False,
+            'auth_timeout': 7200,
+            'auth_remember_timeout': 86400
         }
         req.environ['who_api'] = APIFactory(
             [('auth_tkt', auth_tkt)],
