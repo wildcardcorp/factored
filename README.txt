@@ -144,7 +144,7 @@ An example to follow if you're not using a git checkout::
     auth_tkt.timeout = 12345
     auth_tkt.reissue_time = 1234
 
-    base_auth_url = /robber-management/auth
+    base_auth_url = /auth
     supported_auth_schemes = 
         Google Auth
         Email
