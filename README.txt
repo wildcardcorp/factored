@@ -60,6 +60,28 @@ sqlalchemy.url
 mail. prefixed options
     Configuration passed directly to the mailer plugin. Options can be found at
     http://packages.python.org/pyramid_mailer/#configuration
+autouserfinder
+    Specify a plugin that will automatically find users for the system to allow
+    authentication for. Pre-packaged plugins include `SQL` and `Email Domain`.
+
+
+autouserfinder SQL configuration options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+autouserfinder.connection_string
+    sqlalchemy connection string to connection to the database.
+autouserfinder.table_name
+    Name of the table to lookup users in.
+autouserfinder.email_field
+    Name of the field to find the usernames(could be username or email field).
+
+
+autouserfinder Email Domain configuration options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+autouserfinder.valid_domains
+    List of valid domains to automatically create users for.
+
 
 Nginx Example Configuration
 ---------------------------
