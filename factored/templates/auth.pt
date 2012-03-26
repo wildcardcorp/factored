@@ -21,7 +21,6 @@
           </div>
         </tal:email>
         <tal:code tal:condition="python: send_submitted or validate_submitted">
-          ${cform.hidden("username", size=30)}
           <div class="control-group" tal:define="error python: 'code' in cform.form.errors"
               tal:attributes="class python: error and 'error control-group' or 'control-group'">
             <label class="control-label" for="code">${form_code_label}</label>
@@ -35,13 +34,16 @@
               </p>
             </div>
           </div>
+          ${cform.hidden("username", size=30)}
         </tal:code>
         <div class="form-actions">
           <tal:email tal:condition="python: not send_submitted and not validate_submitted">
             <input type="submit" name="submit" class="btn btn-primary" value="${form_button_username}" />
           </tal:email>
           <tal:code tal:condition="python: send_submitted or validate_submitted">
-            <input type="submit" name="submit" name="submit" class="btn btn-primary" value="${form_button_authenticate}" />
+            <input type="submit" name="submit" class="btn btn-primary" value="${form_button_authenticate}" />
+            <input tal:condition="allowgooglecodereminder"
+                type="submit" name="submit" class="btn btn-primary" value="${form_button_codereminder}" />
           </tal:code
         </div>
       </fieldset>

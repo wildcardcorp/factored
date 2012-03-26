@@ -11,6 +11,7 @@ from datetime import timedelta
 from factored.utils import get_google_auth_code
 from factored.utils import get_context
 from factored.utils import create_user
+from factored.utils import get_barcode_image
 
 _auth_plugins = []
 
@@ -57,10 +58,12 @@ class BaseAuthView(object):
 
     form_button_username = u'Next'
     form_button_authenticate = u'Authenticate'
+    form_button_codereminder = u'Send Code Reminder'
 
     error_invalid_username_code = u'Invalid username for this code'
     error_invalid_code = u'Code did not validate'
     error_invalid_username = u'Invalid username'
+    error_code_reminder = u'A code reminder email has been sent.'
 
     username_schema = UsernameSchema
     code_schema = CodeSchema
@@ -73,6 +76,13 @@ class BaseAuthView(object):
         self.cform = Form(req, schema=self.code_schema)
         self.message_settings = req.registry['settings']['email_auth_settings']
         self.send_submitted = self.validate_submitted = False
+        self.googleauthcodereminder_settings = \
+            req.registry['settings']['allowgooglecodereminder_settings']
+
+    @property
+    def allowgooglecodereminder(self):
+        return self.req.registry['settings']['allowgooglecodereminder'] and \
+            self.name == 'Google Auth'
 
     def get_user(self, username):
         user = DBSession.query(User).filter_by(username=username).first()
@@ -86,10 +96,27 @@ class BaseAuthView(object):
     def check_code(self, user):
         return False
 
+    def user_form_submitted_successfully(self, user):
+        pass
+
     def __call__(self):
         req = self.req
         if req.method == "POST":
-            if req.POST.get('submit', '') == self.form_button_username:
+            if req.POST.get('submit', '') == self.form_button_codereminder \
+                    and self.allowgooglecodereminder:
+                self.validate_submitted = True
+                self.cform.validate()
+                self.cform.errors['code'] = self.error_code_reminder
+                username = self.cform.data['username']
+                user = self.get_user(username)
+                if 'username' not in self.cform.errors and user is not None:
+                    mailer = self.req.registry['mailer']
+                    message = self.googleauthcodereminder_settings.copy()
+                    message['recipients'] = [username]
+                    message['body'] = message['body'].replace('{code}',
+                        get_barcode_image(username, user.secret))
+                    mailer.send(Message(**message))
+            elif req.POST.get('submit', '') == self.form_button_username:
                 if self.uform.validate():
                     username = self.uform.data['username']
                     self.cform.data['username'] = username
@@ -125,11 +152,13 @@ class BaseAuthView(object):
             validate_submitted=self.validate_submitted,
             form_button_username=self.form_button_username,
             form_button_authenticate=self.form_button_authenticate,
+            form_button_codereminder=self.form_button_codereminder,
             form_title=self.form_title, form_legend=self.form_legend,
             form_username_label=self.form_username_label,
             form_username_desc=self.form_username_desc,
             form_code_label=self.form_code_label,
-            form_code_desc=self.form_code_desc)
+            form_code_desc=self.form_code_desc,
+            allowgooglecodereminder=self.allowgooglecodereminder)
 
 
 class GoogleAuthView(BaseAuthView):

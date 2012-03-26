@@ -52,7 +52,7 @@ class Authenticator(object):
 
     def __init__(self, app, global_config, base_auth_url='/auth',
                     supported_auth_schemes="Google Auth",
-                    email_auth_window='120',
+                    email_auth_window='120', allowgooglecodereminder='false',
                     **settings):
         self.app = app
         self.supported_auth_schemes = _tolist(supported_auth_schemes)
@@ -61,6 +61,10 @@ class Authenticator(object):
 
         self.auth_tkt = make_plugin(**get_settings(settings, 'auth_tkt.'))
         self.email_auth_settings = get_settings(settings, 'email_auth.')
+        self.allowgooglecodereminder = \
+            allowgooglecodereminder.lower() == 'true' or False
+        self.allowgooglecodereminder_settings = get_settings(settings,
+            'allowgooglecodereminder.')
 
         self.who = APIFactory([('auth_tkt', self.auth_tkt)],
             [('auth_tkt', self.auth_tkt)], [], [],

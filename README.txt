@@ -63,6 +63,9 @@ mail. prefixed options
 autouserfinder
     Specify a plugin that will automatically find users for the system to allow
     authentication for. Pre-packaged plugins include `SQL` and `Email Domain`.
+allowgooglecodereminder
+    (true|false) value defaulting to false that allows the user, if the username
+    is an email, to get a reminder of their code sent to them.
 
 
 autouserfinder SQL configuration options
