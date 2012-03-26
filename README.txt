@@ -209,3 +209,9 @@ Install::
 to run::
 
     ../bin/gunicorn_paste --workers=2 develop.ini
+
+
+Credit
+------
+
+Work was sponsored by wildcardcorp.com
