@@ -66,6 +66,12 @@ autouserfinder
 allowgooglecodereminder
     (true|false) value defaulting to false that allows the user, if the username
     is an email, to get a reminder of their code sent to them.
+allowgooglecodereminder.subject
+    If using allowing code reminders, the email subject of reminder
+allowgooglecodereminder.sender
+    If using allowing code reminders, the email from address of reminder
+allowgooglecodereminder.body
+    If using allowing code reminders, the email body of reminder
 
 
 autouserfinder SQL configuration options
@@ -138,7 +144,7 @@ An example to follow if you're not using a git checkout::
     auth_tkt.timeout = 12345
     auth_tkt.reissue_time = 1234
 
-    base_auth_url = /auth
+    base_auth_url = /robber-management/auth
     supported_auth_schemes = 
         Google Auth
         Email
@@ -149,7 +155,19 @@ An example to follow if you're not using a git checkout::
     email_auth.sender = foo@bar.com
     email_auth.body = 
         You have requested authentication.
-        You're temporary access code is: {code}
+        Your temporary access code is: {code}
+
+    autouserfinder = SQL
+    autouserfinder.table_name = users
+    autouserfinder.email_field = email
+    autouserfinder.connection_string = sqlite:///%(here)s/users.db
+
+    allowgooglecodereminder = true
+    allowgooglecodereminder.subject = Authentication code reminder
+    allowgooglecodereminder.sender = foo@bar.com
+    allowgooglecodereminder.body = 
+        You have requested code reminder.
+        Your google auth code url is: {code}
 
     pyramid.reload_templates = true
     pyramid.debug_authorization = true
