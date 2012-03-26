@@ -209,10 +209,3 @@ Install::
 to run::
 
     ../bin/gunicorn_paste --workers=2 develop.ini
-
-
-TODO
-----
-
-- be able to also logout of factored
-    - listen for logout url in request to also handle.
