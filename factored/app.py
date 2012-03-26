@@ -58,13 +58,16 @@ class Authenticator(object):
     def __init__(self, app, global_config, base_auth_url='/auth',
                     supported_auth_schemes="Google Auth",
                     email_auth_window='120', allowgooglecodereminder='false',
-                    appname="REPLACEME",
+                    appname="REPLACEME", auth_timeout='7200',
+                    auth_remember_timeout='86400',
                     **settings):
         self.app = app
         self.appname = appname
         self.supported_auth_schemes = _tolist(supported_auth_schemes)
         self.base_auth_url = base_auth_url
         self.email_auth_window = int(email_auth_window)
+        self.auth_timeout = int(auth_timeout)
+        self.auth_remember_timeout = int(auth_remember_timeout)
 
         self.auth_tkt = make_plugin(**get_settings(settings, 'auth_tkt.'))
         self.email_auth_settings = get_settings(settings, 'email_auth.')

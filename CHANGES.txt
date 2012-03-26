@@ -8,6 +8,8 @@ Changelog
 
 - redirect to original url if possible
 
+- be able to provide "remember me" functionality
+
 
 1.1a1 (2012-03-26)
 ------------------

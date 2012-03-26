@@ -40,6 +40,11 @@ appname
 auth_tkt. prefixed options
     Configuration options that are passed directly into repoze.who's auth_tkt
     plugin.
+auth_timeout
+    The amount of time in seconds a normal authentication session is valid for.
+auth_remember_timeout
+    The amount of time in seconds the authentication seesion is valid for 
+    when the user clicks "remember me."
 base_auth_url
     Base url all authentication urls and resources are based off of. Useful if
     you're only looking to authenticate a portion of a site.
@@ -144,9 +149,9 @@ An example to follow if you're not using a git checkout::
     auth_tkt.cookie_name = factored
     auth_tkt.secure = false
     auth_tkt.include_ip = true
-    auth_tkt.timeout = 12345
-    auth_tkt.reissue_time = 1234
 
+    auth_timeout = 7200
+    auth_remember_timeout = 604800
     base_auth_url = /auth
     supported_auth_schemes = 
         Google Auth
@@ -210,4 +215,3 @@ TODO
 ----
 
 - stayed logged in for `x` amount of seconds button configurable
-- auto redirect to original url

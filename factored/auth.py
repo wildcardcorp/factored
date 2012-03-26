@@ -43,6 +43,7 @@ class UsernameSchema(BaseSchema):
 class CodeSchema(BaseSchema):
     username = validators.MinLength(3, not_empty=True)
     code = validators.MinLength(4, not_empty=True)
+    remember = validators.Bool()
     referrer = validators.UnicodeString(if_missing=u'')
 
 
@@ -79,6 +80,19 @@ class BaseAuthView(object):
         self.send_submitted = self.validate_submitted = False
         self.googleauthcodereminder_settings = \
             req.registry['settings']['allowgooglecodereminder_settings']
+        self.auth_timeout = req.registry['settings']['auth_timeout']
+        self.auth_remember_timeout = \
+            req.registry['settings']['auth_remember_timeout']
+        rto = self.auth_remember_timeout / 60
+        if rto > 60:
+            rto = rto / 60
+            if rto > 24:
+                rto = '%i days' % (rto / 24)
+            else:
+                rto = '%i hours' % rto
+        else:
+            rto = '%i minutes' % rto
+        self.remember_duration = rto
 
     @property
     def allowgooglecodereminder(self):
@@ -143,6 +157,10 @@ class BaseAuthView(object):
                                 self.cform.data['username']
                             creds['identifier'] = \
                                 self.req.registry['settings']['auth_tkt']
+                            if self.cform.data['remember']:
+                                creds['max_age'] = self.auth_remember_timeout
+                            else:
+                                creds['max_age'] = self.auth_timeout
                             who_api = self.req.environ['who_api']
                             headers = who_api.remember(creds)
                             referrer = self.cform.data.get('referrer')
@@ -167,7 +185,8 @@ class BaseAuthView(object):
             form_username_desc=self.form_username_desc,
             form_code_label=self.form_code_label,
             form_code_desc=self.form_code_desc,
-            allowgooglecodereminder=self.allowgooglecodereminder)
+            allowgooglecodereminder=self.allowgooglecodereminder,
+            remember_duration=self.remember_duration)
 
 
 class GoogleAuthView(BaseAuthView):
@@ -195,15 +214,13 @@ class GoogleAuthView(BaseAuthView):
 addFactoredPlugin(GoogleAuthView)
 
 
-class EmailAuthSchema(BaseSchema):
+class EmailAuthSchema(UsernameSchema):
     username = validators.Email(not_empty=True)
-    referrer = validators.UnicodeString(if_missing=u'')
 
 
-class EmailAuthCodeSchema(BaseSchema):
+class EmailAuthCodeSchema(CodeSchema):
     username = validators.Email(not_empty=True)
     code = validators.MinLength(8, not_empty=True)
-    referrer = validators.UnicodeString(if_missing=u'')
 
 
 class EmailAuthView(BaseAuthView):

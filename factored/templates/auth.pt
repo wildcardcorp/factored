@@ -35,6 +35,15 @@
               </p>
             </div>
           </div>
+          <div class="control-group">
+            <label class="control-label" for="code">Remember me</label>
+            <div class="controls">
+              <label class="checkbox">
+                ${cform.checkbox("remember")}
+                Keep me logged in for ${remember_duration}.                
+              </label>
+            </div>
+          </div>
           ${cform.hidden("username")}
           ${cform.hidden("referrer")}
         </tal:code>
