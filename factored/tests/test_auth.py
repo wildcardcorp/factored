@@ -58,7 +58,9 @@ class BaseTest(unittest.TestCase):
                 'body': "You're temporary access code is: {code}"},
             'auth_tkt': auth_tkt,
             'email_auth_window': 120,
-            'static_path': '/auth/static'
+            'static_path': '/auth/static',
+            'allowgooglecodereminder_settings': {},
+            'allowgooglecodereminder': False
         }
         req.environ['who_api'] = APIFactory(
             [('auth_tkt', auth_tkt)],

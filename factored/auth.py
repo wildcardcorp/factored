@@ -37,13 +37,13 @@ def getFactoredPlugin(name):
 
 class UsernameSchema(BaseSchema):
     username = validators.MinLength(3, not_empty=True)
-    referrer = validators.MinLength(0)
+    referrer = validators.UnicodeString(if_missing=u'')
 
 
 class CodeSchema(BaseSchema):
     username = validators.MinLength(3, not_empty=True)
     code = validators.MinLength(4, not_empty=True)
-    referrer = validators.MinLength(0)
+    referrer = validators.UnicodeString(if_missing=u'')
 
 
 class BaseAuthView(object):
@@ -197,13 +197,13 @@ addFactoredPlugin(GoogleAuthView)
 
 class EmailAuthSchema(BaseSchema):
     username = validators.Email(not_empty=True)
-    referrer = validators.MinLength(0)
+    referrer = validators.UnicodeString(if_missing=u'')
 
 
 class EmailAuthCodeSchema(BaseSchema):
     username = validators.Email(not_empty=True)
     code = validators.MinLength(8, not_empty=True)
-    referrer = validators.MinLength(0)
+    referrer = validators.UnicodeString(if_missing=u'')
 
 
 class EmailAuthView(BaseAuthView):
