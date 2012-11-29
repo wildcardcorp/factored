@@ -254,6 +254,7 @@ class AuthTktCookiePlugin(object):
         self.timeout = timeout
         self.reissue_time = reissue_time
         self.userid_checker = userid_checker
+        self.cookie_domain = cookie_domain
 
     # IIdentifier
     def identify(self, environ):
