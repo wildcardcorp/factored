@@ -351,7 +351,7 @@ class AuthTktCookiePlugin(object):
                 secure=self.secure)
             new_cookie_value = ticket.cookie_value()
             
-            if is_equal(old_cookie_value, new_cookie_value):
+            if not is_equal(old_cookie_value, new_cookie_value):
                 # return a set of Set-Cookie headers
                 return self._get_cookies(environ, new_cookie_value, max_age)
 
