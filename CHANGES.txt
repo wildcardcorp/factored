@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.2a1 (2012-03-26)
+1.2a1 (unreleased)
 ------------------
 
 - pull out auth_tkt module of paste so we can customize a bit

@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '1.1a2'
+version = '1.2a1'
 
 setup(name='factored',
       version=version,
@@ -26,7 +26,7 @@ setup(name='factored',
           'PasteScript',
           'webob',
           'WSGIProxy',
-          'repoze.who',
+          'repoze.who==2.0',
           'pyramid',
           'SQLAlchemy',
           'transaction',

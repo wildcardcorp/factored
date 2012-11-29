@@ -38,35 +38,21 @@ non-Python code run under Apache.
 """
 
 import time as time_mod
-try:
-    from hashlib import md5
-except ImportError:
-    from md5 import md5
+from hashlib import md5
 import Cookie
-from Cookie import SimpleCookie, CookieError
 from urllib import quote as url_quote
 from urllib import unquote as url_unquote
+import datetime
+from codecs import utf_8_decode
+from codecs import utf_8_encode
+import os
+import time
+from paste.request import get_cookies
 
+from zope.interface import implements
 
-def get_cookies(environ):
-    """
-    Gets a cookie object (which is a dictionary-like object) from the
-    request environment; caches this value in case get_cookies is
-    called again for the same request.
-
-    """
-    header = environ.get('HTTP_COOKIE', '')
-    if environ.has_key('paste.cookies'):
-        cookies, check_header = environ['paste.cookies']
-        if check_header == header:
-            return cookies
-    cookies = SimpleCookie()
-    try:
-        cookies.load(header)
-    except CookieError:
-        pass
-    environ['paste.cookies'] = (cookies, header)
-    return cookies
+from repoze.who.interfaces import IIdentifier
+from repoze.who.interfaces import IAuthenticator
 
 
 class AuthTicket(object):
@@ -233,199 +219,227 @@ def maybe_encode(s, encoding='utf8'):
     return s
 
 
-class AuthTKTMiddleware(object):
+_NOW_TESTING = None  # unit tests can replace
+def _now():  #pragma NO COVERAGE
+    if _NOW_TESTING is not None:
+        return _NOW_TESTING
+    return datetime.datetime.now()
 
-    """
-    Middleware that checks for signed cookies that match what
-    `mod_auth_tkt <http://www.openfusion.com.au/labs/mod_auth_tkt/>`_
-    looks for (if you have mod_auth_tkt installed, you don't need this
-    middleware, since Apache will set the environmental variables for
-    you).
+class AuthTktCookiePlugin(object):
 
-    Arguments:
+    implements(IIdentifier, IAuthenticator)
 
-    ``secret``:
-        A secret that should be shared by any instances of this application.
-        If this app is served from more than one machine, they should all
-        have the same secret.
+    userid_type_decoders = {
+        'int':int,
+        'unicode':lambda x: utf_8_decode(x)[0],
+        }
 
-    ``cookie_name``:
-        The name of the cookie to read and write from.  Default ``auth_tkt``.
-
-    ``secure``:
-        If the cookie should be set as 'secure' (only sent over SSL) and if
-        the login must be over SSL. (Defaults to False)
-
-    ``httponly``:
-        If the cookie should be marked as HttpOnly, which means that it's
-        not accessible to JavaScript. (Defaults to False)
-
-    ``include_ip``:
-        If the cookie should include the user's IP address.  If so, then
-        if they change IPs their cookie will be invalid.
-
-    ``logout_path``:
-        The path under this middleware that should signify a logout.  The
-        page will be shown as usual, but the user will also be logged out
-        when they visit this page.
-
-    If used with mod_auth_tkt, then these settings (except logout_path) should
-    match the analogous Apache configuration settings.
-
-    This also adds two functions to the request:
-
-    ``environ['paste.auth_tkt.set_user'](userid, tokens='', user_data='')``
-
-        This sets a cookie that logs the user in.  ``tokens`` is a
-        string (comma-separated groups) or a list of strings.
-        ``user_data`` is a string for your own use.
-
-    ``environ['paste.auth_tkt.logout_user']()``
-
-        Logs out the user.
-    """
-
-    def __init__(self, app, secret, cookie_name='auth_tkt', secure=False,
-                 include_ip=True, logout_path=None, httponly=False,
-                 no_domain_cookie=True, current_domain_cookie=True,
-                 wildcard_cookie=True):
-        self.app = app
+    userid_type_encoders = {
+        int: ('int', str),
+        long: ('int', str),
+        unicode: ('unicode', lambda x: utf_8_encode(x)[0]),
+        }
+    
+    def __init__(self, secret, cookie_name='auth_tkt',
+                 secure=False, include_ip=False,
+                 timeout=None, reissue_time=None, userid_checker=None,
+                 cookie_domain=False):
         self.secret = secret
         self.cookie_name = cookie_name
-        self.secure = secure
-        self.httponly = httponly
         self.include_ip = include_ip
-        self.logout_path = logout_path
-        self.no_domain_cookie = no_domain_cookie
-        self.current_domain_cookie = current_domain_cookie
-        self.wildcard_cookie = wildcard_cookie
+        self.secure = secure
+        if timeout and ( (not reissue_time) or (reissue_time > timeout) ):
+            raise ValueError('When timeout is specified, reissue_time must '
+                             'be set to a lower value')
+        self.timeout = timeout
+        self.reissue_time = reissue_time
+        self.userid_checker = userid_checker
 
-    def __call__(self, environ, start_response):
+    # IIdentifier
+    def identify(self, environ):
         cookies = get_cookies(environ)
-        if self.cookie_name in cookies:
-            cookie_value = cookies[self.cookie_name].value
-        else:
-            cookie_value = ''
-        if cookie_value:
-            if self.include_ip:
-                remote_addr = environ['REMOTE_ADDR']
-            else:
-                # mod_auth_tkt uses this dummy value when IP is not
-                # checked:
-                remote_addr = '0.0.0.0'
-            # @@: This should handle bad signatures better:
-            # Also, timeouts should cause cookie refresh
-            try:
-                timestamp, userid, tokens, user_data = parse_ticket(
-                    self.secret, cookie_value, remote_addr)
-                tokens = ','.join(tokens)
-                environ['REMOTE_USER'] = userid
-                if environ.get('REMOTE_USER_TOKENS'):
-                    # We want to add tokens/roles to what's there:
-                    tokens = environ['REMOTE_USER_TOKENS'] + ',' + tokens
-                environ['REMOTE_USER_TOKENS'] = tokens
-                environ['REMOTE_USER_DATA'] = user_data
-                environ['AUTH_TYPE'] = 'cookie'
-            except BadTicket:
-                # bad credentials, just ignore without logging the user
-                # in or anything
-                pass
-        set_cookies = []
+        cookie = cookies.get(self.cookie_name)
 
-        def set_user(userid, tokens='', user_data=''):
-            set_cookies.extend(self.set_user_cookie(
-                environ, userid, tokens, user_data))
+        if cookie is None or not cookie.value:
+            return None
 
-        def logout_user():
-            set_cookies.extend(self.logout_user_cookie(environ))
-
-        environ['paste.auth_tkt.set_user'] = set_user
-        environ['paste.auth_tkt.logout_user'] = logout_user
-        if self.logout_path and environ.get('PATH_INFO') == self.logout_path:
-            logout_user()
-
-        def cookie_setting_start_response(status, headers, exc_info=None):
-            headers.extend(set_cookies)
-            return start_response(status, headers, exc_info)
-
-        return self.app(environ, cookie_setting_start_response)
-
-    def set_user_cookie(self, environ, userid, tokens, user_data):
-        if not isinstance(tokens, basestring):
-            tokens = ','.join(tokens)
         if self.include_ip:
             remote_addr = environ['REMOTE_ADDR']
         else:
             remote_addr = '0.0.0.0'
-        ticket = AuthTicket(
-            self.secret,
-            userid,
-            remote_addr,
-            tokens=tokens,
-            user_data=user_data,
-            cookie_name=self.cookie_name,
-            secure=self.secure)
-        # @@: Should we set REMOTE_USER etc in the current
-        # environment right now as well?
-        cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
-        wild_domain = '.' + cur_domain
+        
+        try:
+            timestamp, userid, tokens, user_data = parse_ticket(
+                self.secret, cookie.value, remote_addr)
+        except BadTicket:
+            return None
 
-        cookie_options = ""
+        if self.timeout and ( (timestamp + self.timeout) < time.time() ):
+            return None
+
+        userid_typename = 'userid_type:'
+        user_data_info = user_data.split('|')
+        for datum in filter(None, user_data_info):
+            if datum.startswith(userid_typename):
+                userid_type = datum[len(userid_typename):]
+                decoder = self.userid_type_decoders.get(userid_type)
+                if decoder:
+                    userid = decoder(userid)
+            
+        environ['REMOTE_USER_TOKENS'] = tokens
+        environ['REMOTE_USER_DATA'] = user_data
+        environ['AUTH_TYPE'] = 'cookie'
+
+        identity = {}
+        identity['timestamp'] = timestamp
+        identity['repoze.who.plugins.auth_tkt.userid'] = userid
+        identity['tokens'] = tokens
+        identity['userdata'] = user_data
+        return identity
+
+    # IIdentifier
+    def forget(self, environ, identity):
+        # return a set of expires Set-Cookie headers
+        return self._get_cookies(environ, 'INVALID', 0)
+    
+    # IIdentifier
+    def remember(self, environ, identity):
+        if self.include_ip:
+            remote_addr = environ['REMOTE_ADDR']
+        else:
+            remote_addr = '0.0.0.0'
+
+        cookies = get_cookies(environ)
+        old_cookie = cookies.get(self.cookie_name)
+        existing = cookies.get(self.cookie_name)
+        old_cookie_value = getattr(existing, 'value', None)
+        max_age = identity.get('max_age', None)
+
+        timestamp, userid, tokens, userdata = None, '', (), ''
+
+        if old_cookie_value:
+            try:
+                timestamp,userid,tokens,userdata = parse_ticket(
+                    self.secret, old_cookie_value, remote_addr)
+            except BadTicket:
+                pass
+        tokens = tuple(tokens)
+
+        who_userid = identity['repoze.who.userid']
+        who_tokens = tuple(identity.get('tokens', ()))
+        who_userdata = identity.get('userdata', '')
+
+        encoding_data = self.userid_type_encoders.get(type(who_userid))
+        if encoding_data:
+            encoding, encoder = encoding_data
+            who_userid = encoder(who_userid)
+            who_userdata = 'userid_type:%s' % encoding
+        
+        old_data = (userid, tokens, userdata)
+        new_data = (who_userid, who_tokens, who_userdata)
+
+        if old_data != new_data or (self.reissue_time and
+                ( (timestamp + self.reissue_time) < time.time() )):
+            ticket = AuthTicket(
+                self.secret,
+                who_userid,
+                remote_addr,
+                tokens=who_tokens,
+                user_data=who_userdata,
+                cookie_name=self.cookie_name,
+                secure=self.secure,
+                cookie_domain=self.cookie_domain)
+            new_cookie_value = ticket.cookie_value()
+            
+            if is_equal(old_cookie_value, new_cookie_value):
+                # return a set of Set-Cookie headers
+                return self._get_cookies(environ, new_cookie_value, max_age)
+
+    # IAuthenticator
+    def authenticate(self, environ, identity):
+        userid = identity.get('repoze.who.plugins.auth_tkt.userid')
+        if userid is None:
+            return None
+        if self.userid_checker and not self.userid_checker(userid):
+            return None
+        identity['repoze.who.userid'] = userid
+        return userid
+
+    def _get_cookies(self, environ, value, max_age=None):
+        if max_age is not None:
+            max_age = int(max_age)
+            later = _now() + datetime.timedelta(seconds=max_age)
+            # Wdy, DD-Mon-YY HH:MM:SS GMT
+            expires = later.strftime('%a, %d %b %Y %H:%M:%S')
+            # the Expires header is *required* at least for IE7 (IE7 does
+            # not respect Max-Age)
+            max_age = "; Max-Age=%s; Expires=%s" % (max_age, expires)
+        else:
+            max_age = ''
+
+        secure = ''
         if self.secure:
-            cookie_options += "; secure"
-        if self.httponly:
-            cookie_options += "; HttpOnly"
+            secure = '; secure; HttpOnly'
 
-        cookies = []
-        if self.no_domain_cookie:
-            cookies.append(('Set-Cookie', '%s=%s; Path=/%s' % (
-                self.cookie_name, ticket.cookie_value(), cookie_options)))
-        if self.current_domain_cookie:
-            cookies.append(('Set-Cookie', '%s=%s; Path=/; Domain=%s%s' % (
-                self.cookie_name, ticket.cookie_value(), cur_domain,
-                cookie_options)))
-        if self.wildcard_cookie:
-            cookies.append(('Set-Cookie', '%s=%s; Path=/; Domain=%s%s' % (
-                self.cookie_name, ticket.cookie_value(), wild_domain,
-                cookie_options)))
-
-        return cookies
-
-    def logout_user_cookie(self, environ):
         cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
+        cur_domain = cur_domain.split(':')[0] # drop port
         wild_domain = '.' + cur_domain
-        expires = 'Sat, 01-Jan-2000 12:00:00 GMT'
         cookies = [
-            ('Set-Cookie', '%s=""; Expires="%s"; Path=/' % (self.cookie_name, expires)),
-            ('Set-Cookie', '%s=""; Expires="%s"; Path=/; Domain=%s' %
-             (self.cookie_name, expires, cur_domain)),
-            ('Set-Cookie', '%s=""; Expires="%s"; Path=/; Domain=%s' %
-             (self.cookie_name, expires, wild_domain)),
+            ('Set-Cookie', '%s="%s"; Path=/%s%s' % (
+            self.cookie_name, value, max_age, secure)),
+            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s%s%s' % (
+            self.cookie_name, value, cur_domain, max_age, secure)),
+            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s%s%s' % (
+            self.cookie_name, value, wild_domain, max_age, secure))
             ]
+        if self.cookie_domain:
+            cookies.append(('Set-Cookie', '%s=%s; Path=/; Domain=%s%s' % (
+                self.cookie_name, value, self.cookie_domain, max_age, secure)))
         return cookies
 
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__,
+                            id(self)) #pragma NO COVERAGE
 
-def make_auth_tkt_middleware(
-    app,
-    global_conf,
-    secret=None,
-    cookie_name='auth_tkt',
-    secure=False,
-    include_ip=True,
-    logout_path=None):
-    """
-    Creates the `AuthTKTMiddleware
-    <class-paste.auth.auth_tkt.AuthTKTMiddleware.html>`_.
+def _bool(value):
+    if isinstance(value, basestring):
+        return value.lower() in ('yes', 'true', '1')
+    return value
 
-    ``secret`` is requird, but can be set globally or locally.
-    """
-    from paste.deploy.converters import asbool
-    secure = asbool(secure)
-    include_ip = asbool(include_ip)
-    if secret is None:
-        secret = global_conf.get('secret')
-    if not secret:
-        raise ValueError(
-            "You must provide a 'secret' (in global or local configuration)")
-    return AuthTKTMiddleware(
-        app, secret, cookie_name, secure, include_ip, logout_path or None)
+def make_plugin(secret=None,
+                secretfile=None,
+                cookie_name='auth_tkt',
+                secure=False,
+                include_ip=False,
+                timeout=None,
+                reissue_time=None,
+                userid_checker=None,
+                cookie_domain=None
+               ):
+    from repoze.who.utils import resolveDotted
+    if (secret is None and secretfile is None):
+        raise ValueError("One of 'secret' or 'secretfile' must not be None.")
+    if (secret is not None and secretfile is not None):
+        raise ValueError("Specify only one of 'secret' or 'secretfile'.")
+    if secretfile:
+        secretfile = os.path.abspath(os.path.expanduser(secretfile))
+        if not os.path.exists(secretfile):
+            raise ValueError("No such 'secretfile': %s" % secretfile)
+        secret = open(secretfile).read().strip()
+    if timeout:
+        timeout = int(timeout)
+    if reissue_time:
+        reissue_time = int(reissue_time)
+    if userid_checker is not None:
+        userid_checker = resolveDotted(userid_checker)
+    plugin = AuthTktCookiePlugin(secret,
+                                 cookie_name,
+                                 _bool(secure),
+                                 _bool(include_ip),
+                                 timeout,
+                                 reissue_time,
+                                 userid_checker,
+                                 cookie_domain=cookie_domain or False
+                                 )
+    return plugin
+
