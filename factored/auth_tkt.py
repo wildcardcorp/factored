@@ -393,7 +393,7 @@ class AuthTktCookiePlugin(object):
             self.cookie_name, value, wild_domain, max_age, secure))
             ]
         if self.cookie_domain:
-            cookies.append(('Set-Cookie', '%s=%s; Path=/; Domain=%s%s' % (
+            cookies.append(('Set-Cookie', '%s=%s; Path=/; Domain=%s%s%s' % (
                 self.cookie_name, value, self.cookie_domain, max_age, secure)))
         return cookies
 
