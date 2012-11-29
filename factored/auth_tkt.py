@@ -348,8 +348,7 @@ class AuthTktCookiePlugin(object):
                 tokens=who_tokens,
                 user_data=who_userdata,
                 cookie_name=self.cookie_name,
-                secure=self.secure,
-                cookie_domain=self.cookie_domain)
+                secure=self.secure)
             new_cookie_value = ticket.cookie_value()
             
             if is_equal(old_cookie_value, new_cookie_value):
