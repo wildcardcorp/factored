@@ -1,19 +1,56 @@
 import time
 from datetime import datetime
-import os
 import base64
-import random
 import struct
 import hmac
 import hashlib
 
+import random
+try:
+    random = random.SystemRandom()
+    using_sysrandom = True
+except NotImplementedError:
+    using_sysrandom = False
+
+from hashlib import sha256 as sha
+
+
+# generated when process started, hard to guess
+SECRET = random.randint(0, 1000000)
+
+
+def get_random_string(length=12,
+                      allowed_chars='abcdefghijklmnopqrstuvwxyz'
+                                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'):
+    """
+    Returns a securely generated random string.
+
+    The default length of 12 with the a-z, A-Z, 0-9 character set returns
+    a 71-bit value. log_2((26+26+10)^12) =~ 71 bits
+    """
+    if not using_sysrandom:
+        # This is ugly, and a hack, but it makes things better than
+        # the alternative of predictability. This re-seeds the PRNG
+        # using a value that is hard for an attacker to predict, every
+        # time a random string is required. This may change the
+        # properties of the chosen random sequence slightly, but this
+        # is better than absolute predictability.
+        random.seed(
+            sha(
+                "%s%s%s" % (
+                    random.getstate(),
+                    time.time(),
+                    SECRET)
+                ).digest())
+    return ''.join([random.choice(allowed_chars) for i in range(length)])
+
 
 def generate_random_google_code(length=10):
-    return base64.b32encode(os.urandom(length))
+    return base64.b32encode(get_random_string(length))
 
 
 def make_random_code(length=255):
-    return hashlib.sha1(hashlib.sha1(str(random.random())).
+    return hashlib.sha1(hashlib.sha1(str(get_random_string(length))).
         hexdigest()[:5] + str(datetime.now().microsecond)).hexdigest()[:length]
 
 
