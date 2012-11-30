@@ -37,9 +37,21 @@ Paste configuration options
 
 appname
     Appened to google auth keys so it doesn't overwrite others.
-auth_tkt. prefixed options
-    Configuration options that are passed directly into repoze.who's auth_tkt
-    plugin.
+auth_tkt.secret
+    The secret (a string) used for auth_tkt cookie signing.
+auth_tkt.cookie_name
+    The cookie name used
+auth_tkt.secure
+    Only send the cookie back over a secure conn.
+auth_tkt.include_ip
+    Make the requesting IP address part of the authentication data in the cookie.
+auth_tkt.path
+    The path for which the auth_tkt cookie is valid.
+    May be desirable if the application only serves part of a domain.
+auth_tkt.http_only
+       Hide cookie from JavaScript by setting the HttpOnly flag. Not honored by all browsers.
+auth_tkt.wild_domain
+       An auth_tkt cookie will be generated for the wildcard domain.
 auth_timeout
     The amount of time in seconds a normal authentication session is valid for.
 auth_remember_timeout

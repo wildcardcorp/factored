@@ -6,11 +6,9 @@ from pyramid import testing
 from factored.models import DBSession
 from factored.utils import generate_random_google_code
 from pyramid.httpexceptions import HTTPFound
-from repoze.who.plugins.auth_tkt import make_plugin
-from repoze.who.api import APIFactory
-from repoze.who.classifiers import default_request_classifier
-from repoze.who.classifiers import default_challenge_decider
 from datetime import timedelta
+from factored.auth_tkt import AuthTktAuthenticator
+from pyramid.authentication import AuthTktAuthenticationPolicy
 
 
 class FakeMailer(object):
@@ -50,13 +48,11 @@ class BaseTest(unittest.TestCase):
             'wsgi.version': (1, 0),
             'wsgi.run_once': False})
         req = testing.DummyRequest(*args, **kwargs)
-        auth_tkt = make_plugin(secret="secret", cookie_name="test")
         req.registry['settings'] = {
             'email_auth_settings': {
                 'subject': 'Authentication Request',
                 'sender': 'foo@bar.com',
                 'body': "You're temporary access code is: {code}"},
-            'auth_tkt': auth_tkt,
             'email_auth_window': 120,
             'static_path': '/auth/static',
             'allowgooglecodereminder_settings': {},
@@ -64,10 +60,9 @@ class BaseTest(unittest.TestCase):
             'auth_timeout': 7200,
             'auth_remember_timeout': 86400
         }
-        req.environ['who_api'] = APIFactory(
-            [('auth_tkt', auth_tkt)],
-            [('auth_tkt', auth_tkt)], [], [],
-            default_request_classifier, default_challenge_decider)(req.environ)
+        req.environ['auth'] = AuthTktAuthenticator(
+            AuthTktAuthenticationPolicy('SECRET', cookie_name='test'),
+            req.environ)
         req.registry['mailer'] = self.mailer
         return req
 

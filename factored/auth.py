@@ -152,17 +152,13 @@ class BaseAuthView(object):
                             self.error_invalid_username_code
                     else:
                         if self.check_code(user):
-                            creds = {}
-                            creds['repoze.who.userid'] = \
-                                self.cform.data['username']
-                            creds['identifier'] = \
-                                self.req.registry['settings']['auth_tkt']
+                            userid = self.cform.data['username']
                             if self.cform.data['remember']:
-                                creds['max_age'] = self.auth_remember_timeout
+                                max_age = self.auth_remember_timeout
                             else:
-                                creds['max_age'] = self.auth_timeout
-                            who_api = self.req.environ['who_api']
-                            headers = who_api.remember(creds)
+                                max_age = self.auth_timeout
+                            auth = self.req.environ['auth']
+                            headers = auth.remember(userid, max_age=max_age)
                             referrer = self.cform.data.get('referrer')
                             if not referrer:
                                 referrer = '/'

@@ -1,10 +1,8 @@
 from pyramid.config import Configurator
 from sqlalchemy import engine_from_config
 from wsgiproxy.exactproxy import proxy_exact_request
-from factored.auth_tkt import make_plugin
-from repoze.who.api import APIFactory
-from repoze.who.classifiers import default_request_classifier
-from repoze.who.classifiers import default_challenge_decider
+from pyramid.authentication import AuthTktAuthenticationPolicy
+from factored.auth_tkt import AuthTktAuthenticator
 from pyramid.httpexceptions import HTTPFound
 from factored.models import DBSession
 from factored.auth import getFactoredPlugins, getFactoredPlugin
@@ -55,6 +53,15 @@ def get_settings(config, prefix):
     return settings
 
 
+def normalize_settings(settings):
+    for key, val in settings.items():
+        if val in ('true', 'True', 't'):
+            settings[key] = True
+        elif val in ('false', 'False', 'f'):
+            settings[key] = False
+    return settings
+
+
 class Authenticator(object):
 
     def __init__(self, app, global_config, base_auth_url='/auth',
@@ -71,16 +78,14 @@ class Authenticator(object):
         self.auth_timeout = int(auth_timeout)
         self.auth_remember_timeout = int(auth_remember_timeout)
 
-        self.auth_tkt = make_plugin(**get_settings(settings, 'auth_tkt.'))
+        auth_settings = normalize_settings(get_settings(settings, 'auth_tkt.'))
+        auth_settings['hashalg'] = 'sha512'
+        self.auth_tkt_policy = AuthTktAuthenticationPolicy(**auth_settings)
         self.email_auth_settings = get_settings(settings, 'email_auth.')
         self.allowgooglecodereminder = \
             allowgooglecodereminder.lower() == 'true' or False
         self.allowgooglecodereminder_settings = get_settings(settings,
             'allowgooglecodereminder.')
-
-        self.who = APIFactory([('auth_tkt', self.auth_tkt)],
-            [('auth_tkt', self.auth_tkt)], [], [],
-            default_request_classifier, default_challenge_decider)
 
         # db configuration
         engine = engine_from_config(settings, 'sqlalchemy.')
@@ -116,9 +121,11 @@ class Authenticator(object):
         self.pyramid = config.make_wsgi_app()
 
     def __call__(self, environ, start_response):
-        who_api = self.who(environ)
-        environ['who_api'] = who_api
-        if who_api.authenticate():
+        auth = AuthTktAuthenticator(self.auth_tkt_policy, environ)
+        environ['auth'] = auth
+        if environ['PATH_INFO'] == '/auth':
+            pass
+        if auth.authenticate():
             return self.app(environ, start_response)
         else:
             return self.pyramid(environ, start_response)
