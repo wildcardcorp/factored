@@ -1,8 +1,7 @@
 from pyramid.config import Configurator
 from sqlalchemy import engine_from_config
 from wsgiproxy.exactproxy import proxy_exact_request
-from pyramid.authentication import AuthTktAuthenticationPolicy
-from factored.auth_tkt import AuthTktAuthenticator
+from factored.auth_tkt import AuthTktAuthenticator, AuthenticationPolicy
 from pyramid.httpexceptions import HTTPFound
 from factored.models import DBSession
 from factored.auth import getFactoredPlugins, getFactoredPlugin
@@ -79,8 +78,7 @@ class Authenticator(object):
         self.auth_remember_timeout = int(auth_remember_timeout)
 
         auth_settings = normalize_settings(get_settings(settings, 'auth_tkt.'))
-        auth_settings['hashalg'] = 'sha512'
-        self.auth_tkt_policy = AuthTktAuthenticationPolicy(**auth_settings)
+        self.auth_tkt_policy = AuthenticationPolicy(**auth_settings)
         self.email_auth_settings = get_settings(settings, 'email_auth.')
         self.allowgooglecodereminder = \
             allowgooglecodereminder.lower() == 'true' or False

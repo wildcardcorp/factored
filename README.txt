@@ -49,9 +49,11 @@ auth_tkt.path
     The path for which the auth_tkt cookie is valid.
     May be desirable if the application only serves part of a domain.
 auth_tkt.http_only
-       Hide cookie from JavaScript by setting the HttpOnly flag. Not honored by all browsers.
+    Hide cookie from JavaScript by setting the HttpOnly flag. Not honored by all browsers.
 auth_tkt.wild_domain
-       An auth_tkt cookie will be generated for the wildcard domain.
+    An auth_tkt cookie will be generated for the wildcard domain.
+auth_tkt.cookie_domain
+    To set the cookie on an additional different domain.
 auth_timeout
     The amount of time in seconds a normal authentication session is valid for.
 auth_remember_timeout
