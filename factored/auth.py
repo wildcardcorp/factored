@@ -12,6 +12,7 @@ from factored.utils import get_google_auth_code
 from factored.utils import get_context
 from factored.utils import create_user
 from factored.utils import get_barcode_image
+import copy
 
 _auth_plugins = []
 
@@ -50,27 +51,33 @@ class CodeSchema(BaseSchema):
 class BaseAuthView(object):
     name = None
     path = None
-
-    form_title = None
-    form_legend = None
-    form_username_label = None
-    form_username_desc = None
-    form_code_label = u'Access Code'
-    form_code_desc = None
-
-    form_button_username = u'Next'
-    form_button_authenticate = u'Authenticate'
-    form_button_codereminder = u'Send Code Reminder'
-
-    error_invalid_username_code = u'Invalid username for this code'
-    error_invalid_code = u'Code did not validate'
-    error_invalid_username = u'Invalid username'
-    error_code_reminder = u'A code reminder email has been sent.'
-
     username_schema = UsernameSchema
     code_schema = CodeSchema
-
     renderer = "templates/auth.pt"
+
+    formtext = {
+        'title': None,
+        'legend': None,
+        'username': {
+            'label': None,
+            'desc': None
+        },
+        'code': {
+            'label': u'Access Code',
+            'desc': None
+        },
+        'button': {
+            'username': u'Next',
+            'authenticate': u'Authenticate',
+            'codereminder': u'Send Code Reminder'
+        },
+        'error': {
+            'invalid_username_code': u'Invalid username for this code',
+            'invalid_code': u'Code did not validate',
+            'invalid_username': u'Invalid username',
+            'code_reminder': u'A code reminder email has been sent.'
+        }
+    }
 
     def __init__(self, req):
         self.req = req
@@ -117,7 +124,7 @@ class BaseAuthView(object):
     def __call__(self):
         req = self.req
         if req.method == "POST":
-            if req.POST.get('submit', '') == self.form_button_codereminder \
+            if req.POST.get('submit', '') == self.formtext['button']['codereminder'] \
                     and self.allowgooglecodereminder:
                 self.validate_submitted = True
                 self.cform.validate()
@@ -132,24 +139,24 @@ class BaseAuthView(object):
                         get_barcode_image(username, user.secret,
                             self.req.registry['settings']['appname']))
                     mailer.send(Message(**message))
-            elif req.POST.get('submit', '') == self.form_button_username:
+            elif req.POST.get('submit', '') == self.formtext['button']['username']:
                 if self.uform.validate():
                     username = self.uform.data['username']
                     self.cform.data['username'] = username
                     user = self.get_user(username)
                     if user is None:
                         self.uform.errors['username'] = \
-                            self.error_invalid_username
+                            self.formtext['error']['invalid_username']
                     else:
                         self.send_submitted = True
                         self.user_form_submitted_successfully(user)
-            elif req.POST.get('submit', '') == self.form_button_authenticate:
+            elif req.POST.get('submit', '') == self.formtext['button']['authenticate']:
                 self.validate_submitted = True
                 if self.cform.validate():
                     user = self.get_user(self.cform.data['username'])
                     if user is None:
                         self.cform.errors['code'] = \
-                            self.error_invalid_username_code
+                            self.formtext['error']['invalid_username_code']
                     else:
                         if self.check_code(user):
                             userid = self.cform.data['username']
@@ -164,7 +171,7 @@ class BaseAuthView(object):
                                 referrer = '/'
                             raise HTTPFound(location=referrer, headers=headers)
                         else:
-                            self.cform.errors['code'] = self.error_invalid_code
+                            self.cform.errors['code'] = self.formtext['error']['invalid_code']
                             self.cform.data['code'] = u''
         referrer = self.cform.data.get('referrer',
             self.uform.data.get('referrer', req.params.get('referrer', '')))
@@ -173,15 +180,7 @@ class BaseAuthView(object):
         return get_context(req, uform=FormRenderer(self.uform),
             cform=FormRenderer(self.cform), send_submitted=self.send_submitted,
             validate_submitted=self.validate_submitted,
-            form_button_username=self.form_button_username,
-            form_button_authenticate=self.form_button_authenticate,
-            form_button_codereminder=self.form_button_codereminder,
-            form_title=self.form_title, form_legend=self.form_legend,
-            form_username_label=self.form_username_label,
-            form_username_desc=self.form_username_desc,
-            form_code_label=self.form_code_label,
-            form_code_desc=self.form_code_desc,
-            allowgooglecodereminder=self.allowgooglecodereminder,
+            formtext=self.formtext, allowgooglecodereminder=self.allowgooglecodereminder,
             remember_duration=self.remember_duration)
 
 
@@ -189,11 +188,16 @@ class GoogleAuthView(BaseAuthView):
     name = 'Google Auth'
     path = 'ga'
 
-    form_title = u'Google Authenticator'
-    form_legend = u'Use android app to authenticate...'
-    form_username_label = u'Username'
-    form_username_desc = u"Username you've signed up with."
-    form_code_desc = u'As generated with google authenticator.'
+    formtext = copy.deepcopy(BaseAuthView.formtext)
+    formtext.update({
+        'title': u'Google Authenticator',
+        'legend': u'Use android app to authenticate...'
+        })
+    formtext['username'].update({
+        'label': u'Username',
+        'desc': u"Username you've signed up with."
+    })
+    formtext['code']['desc'] = u'As generated with google authenticator.'
 
     def check_code(self, user):
         tm = int(time.time() / 30)
@@ -222,18 +226,24 @@ class EmailAuthCodeSchema(CodeSchema):
 class EmailAuthView(BaseAuthView):
     name = 'Email'
     path = 'em'
-
-    form_title = u'Email Authenticator'
-    form_legend = u'Authenticate through your email...'
-    form_username_label = u'Email'
-    form_username_desc = u'Email you signed up with. Should be ' + \
-                         u'the same as the username.'
-    form_code_desc = u'Provided in the email sent to you.'
-
     username_schema = EmailAuthSchema
     code_schema = EmailAuthCodeSchema
 
-    form_button_username = u'Send mail'
+    formtext = copy.deepcopy(BaseAuthView.formtext)
+    formtext.update({
+        'title': u'Email Authenticator',
+        'legend': u'Authenticate through your email...'
+        })
+    formtext['username'].update({
+        'label': u'Email',
+        'desc': u'Email you signed up with. Should be ' + \
+                u'the same as the username.'
+    })
+    formtext['code'].update({
+        'desc': u'Provided in the email sent to you.'
+    })
+
+    formtext['button']['username'] = u'Send mail'
 
     def user_form_submitted_successfully(self, user):
         username = self.uform.data['username']
