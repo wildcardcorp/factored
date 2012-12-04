@@ -60,6 +60,8 @@ class BaseTest(unittest.TestCase):
             'auth_timeout': 7200,
             'auth_remember_timeout': 86400
         }
+        req.registry['formtext'] = {}
+        req.registry['factored.template.customizations'] = {}
         req.environ['auth'] = AuthTktAuthenticator(
             AuthTktAuthenticationPolicy('SECRET', cookie_name='test'),
             req.environ)
