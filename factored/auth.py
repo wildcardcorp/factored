@@ -13,6 +13,7 @@ from factored.utils import get_context
 from factored.utils import create_user
 from factored.utils import get_barcode_image
 import copy
+from pyramid.util import strings_differ
 
 _auth_plugins = []
 
@@ -233,7 +234,7 @@ class GoogleAuthView(BaseAuthView):
         for ix in [-1, 0, 1]:
             code = get_google_auth_code(user.secret, tm + ix)
 
-            if code == str(code_attempt):
+            if not strings_differ(code, str(code_attempt)):
                 return True
         return False
 
@@ -287,8 +288,8 @@ class EmailAuthView(BaseAuthView):
     def check_code(self, user):
         window = self.req.registry['settings']['email_auth_window']
         now = datetime.utcnow()
-        return self.cform.data['code'] == user.generated_code and \
-            now < (user.generated_code_time_stamp + timedelta(seconds=window))
+        return (not strings_differ(self.cform.data['code'], user.generated_code)) and \
+                (now < (user.generated_code_time_stamp + timedelta(seconds=window)))
 
 
 addFactoredPlugin(EmailAuthView)
