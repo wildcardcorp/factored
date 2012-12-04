@@ -76,7 +76,7 @@ class BaseAuthView(object):
     path = None
     username_schema = UsernameSchema
     code_schema = CodeSchema
-    renderer = "templates/auth.pt"
+    content_renderer = "templates/auth.pt"
 
     formtext = {
         'title': None,
@@ -205,6 +205,7 @@ class BaseAuthView(object):
         return get_context(req, uform=FormRenderer(self.uform),
             cform=FormRenderer(self.cform), send_submitted=self.send_submitted,
             validate_submitted=self.validate_submitted,
+            content_renderer=self.content_renderer,
             formtext=self.combined_formtext,
             allowgooglecodereminder=self.allowgooglecodereminder,
             remember_duration=self.remember_duration)

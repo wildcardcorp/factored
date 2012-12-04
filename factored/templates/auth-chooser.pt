@@ -1,17 +1,12 @@
-<metal:main use-macro="load: layout.pt">
-  <metal:content metal:fill-slot="content">
-    <h2>Select Authentication Type</h2>
+<h2>Select Authentication Type</h2>
 
-    <ul>
-      <tal:types tal:repeat="type auth_types">
-      <li>
-        <form method="get" action="${type.url}">
-          <input type="hidden" name="referrer" value="${referrer}" />
-          <input type="submit" name="submit" class="btn btn-primary" value="${type.name}" />
-        </form>
-      </li>
-    </tal:types>
-    </ul>
-    
-  </metal:content>
-</metal:main
+<ul>
+  <tal:types tal:repeat="type auth_types">
+  <li>
+    <form method="get" action="${type.url}">
+      <input type="hidden" name="referrer" value="${referrer}" />
+      <input type="submit" name="submit" class="btn btn-primary" value="${type.name}" />
+    </form>
+  </li>
+</tal:types>
+</ul>

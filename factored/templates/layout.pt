@@ -2,87 +2,26 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <title>
-      <metal:pagetitle define-slot="page-title">
-      Factored
-      </metal:pagetitle>
-    </title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="">
-    <meta name="author" content="">
-
-    <!-- Le styles -->
-    <link href="${static_path}/bootstrap/css/bootstrap.css" rel="stylesheet">
-    <style type="text/css">
-      body {
-        padding-top: 40px;
-        padding-bottom: 40px;
-        background-color: #f5f5f5;
-      }
-
-      .content-container {
-        max-width: 500px;
-        padding: 19px 29px 29px;
-        margin: 0 auto 20px;
-        background-color: #fff;
-        border: 1px solid #e5e5e5;
-        -webkit-border-radius: 5px;
-           -moz-border-radius: 5px;
-                border-radius: 5px;
-        -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.05);
-           -moz-box-shadow: 0 1px 2px rgba(0,0,0,.05);
-                box-shadow: 0 1px 2px rgba(0,0,0,.05);
-      }
-      .content-container .form-signin-heading,
-      .content-container .checkbox {
-        margin-bottom: 10px;
-      }
-      .content-container input[type="text"],
-      .content-container input[type="password"] {
-        font-size: 16px;
-        height: auto;
-        margin-bottom: 15px;
-        padding: 7px 9px;
-      }
-      .form-horizontal .control-label {
-        width: 110px;
-      }
-      .form-horizontal .controls{
-        margin-left: 120px;
-      }
-    </style>
-    <link href="${static_path}/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
-
-    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <tal:meta tal:content="structure python: render('meta.pt')" />
+    <tal:includes tal:content="structure python: render('includes.pt')" />
+    <tal:headbottom tal:content="structure python: render('headbottom.pt')" />
   </head>
 
   <body>
     <div class="container">
+      <tal:top tal:content="structure python: render('top.pt')" />
       <div class="content-container">
-        <h3 class="muted">
-          <metal:sitetitle define-slot="site-title">
-            Authenticator
-          </metal:sitetitle>
-        </h3>
+        <tal:bottom tal:content="structure python: render('title.pt')" />
         <hr>
 
-        <div class="jumbotron">
-          <metal:content define-slot="content" />  
-        </div>
+        <tal:abovecontent tal:content="structure python: render('abovecontent.pt')" />
+        <div class="jumbotron" tal:content="structure python: templates.render(content_renderer)" />
+        <tal:belowcontent tal:content="structure python: render('belowcontent.pt')" />
 
         <hr>
-        <footer>
-          <p>
-            <a href="http://www.wildcardcorp.com/?utm_source=sourcecode&utm_medium=factored&utm_campaign=directlink">
-              <img src="${static_path}/poweredby_wildcard.png" />
-            </a>
-          </p>
-        </footer>
+        <tal:abovecontent tal:content="structure python: render('footer.pt')" />
       </div>
+      <tal:bottom tal:content="structure python: render('bottom.pt')" />
     </div> <!-- /container -->
 
     <!-- Le javascript

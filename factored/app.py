@@ -116,10 +116,10 @@ class Authenticator(object):
             config.add_route(plugin.name, os.path.join(base_auth_url,
                                                        plugin.path))
             config.add_view(plugin, route_name=plugin.name,
-                                    renderer=plugin.renderer)
+                            renderer='templates/layout.pt')
         config.add_route('auth', base_auth_url)
         config.add_view(auth_chooser, route_name='auth',
-            renderer='templates/auth-chooser.pt')
+            renderer='templates/layout.pt')
 
         self.static_path = os.path.join(base_auth_url, 'authstatic')
         config.add_static_view(name=self.static_path,

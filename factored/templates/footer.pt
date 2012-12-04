@@ -1,0 +1,7 @@
+<footer>
+<p>
+    <a href="http://www.wildcardcorp.com/?utm_source=sourcecode&utm_medium=factored&utm_campaign=directlink">
+        <img src="${static_path}/poweredby_wildcard.png" />
+    </a>
+</p>
+</footer>

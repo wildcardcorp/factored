@@ -1,64 +1,60 @@
-<metal:main use-macro="load: layout.pt">
-  <metal:content metal:fill-slot="content">
-    <h1>${formtext.title}</h1>
+<h1>${formtext.title}</h1>
 
-    <form class="form-horizontal" method="POST">
-      <fieldset>
-        <legend>${formtext.legend}</legend>
+<form class="form-horizontal" method="POST">
+  <fieldset>
+    <legend>${formtext.legend}</legend>
+    <tal:email tal:condition="python: not send_submitted and not validate_submitted">
+      <div class="control-group" tal:define="error python: 'username' in uform.form.errors"
+          tal:attributes="class python: error and 'error control-group' or 'control-group'">
+        <label class="control-label" for="username">${formtext.username.label}</label>
+        <div class="controls">
+          ${uform.text("username", size=30)}
+          <span class="help-inline" tal:condition="error">
+            ${uform.errorlist("username")}
+          </span>
+          <p class="help-block">
+            ${formtext.username.desc}
+          </p>
+        </div>
+      </div>
+      ${uform.hidden("referrer")}
+    </tal:email>
+    <tal:code tal:condition="python: send_submitted or validate_submitted">
+      <div class="control-group" tal:define="error python: 'code' in cform.form.errors"
+          tal:attributes="class python: error and 'error control-group' or 'control-group'">
+        <label class="control-label" for="code">${formtext.code.label}</label>
+        <div class="controls">
+          ${cform.password("code", size=10)}
+          <span class="help-inline" tal:condition="error">
+            ${cform.errorlist("code")}
+          </span>
+          <p class="help-block">
+            ${formtext.code.desc}
+          </p>
+        </div>
+      </div>
+      <div class="control-group">
+        <label class="control-label" for="code">Remember me</label>
+        <div class="controls">
+          <label class="checkbox">
+            ${cform.checkbox("remember")}
+          </label>
+        </div>
+      </div>
+      ${cform.hidden("username")}
+      ${cform.hidden("referrer")}
+    </tal:code>
+    <div class="control-group">
+      <div class="controls">
         <tal:email tal:condition="python: not send_submitted and not validate_submitted">
-          <div class="control-group" tal:define="error python: 'username' in uform.form.errors"
-              tal:attributes="class python: error and 'error control-group' or 'control-group'">
-            <label class="control-label" for="username">${formtext.username.label}</label>
-            <div class="controls">
-              ${uform.text("username", size=30)}
-              <span class="help-inline" tal:condition="error">
-                ${uform.errorlist("username")}
-              </span>
-              <p class="help-block">
-                ${formtext.username.desc}
-              </p>
-            </div>
-          </div>
-          ${uform.hidden("referrer")}
+          <input type="submit" name="submit" class="btn btn-primary" value="${formtext.button.username}" />
         </tal:email>
         <tal:code tal:condition="python: send_submitted or validate_submitted">
-          <div class="control-group" tal:define="error python: 'code' in cform.form.errors"
-              tal:attributes="class python: error and 'error control-group' or 'control-group'">
-            <label class="control-label" for="code">${formtext.code.label}</label>
-            <div class="controls">
-              ${cform.password("code", size=10)}
-              <span class="help-inline" tal:condition="error">
-                ${cform.errorlist("code")}
-              </span>
-              <p class="help-block">
-                ${formtext.code.desc}
-              </p>
-            </div>
-          </div>
-          <div class="control-group">
-            <label class="control-label" for="code">Remember me</label>
-            <div class="controls">
-              <label class="checkbox">
-                ${cform.checkbox("remember")}
-              </label>
-            </div>
-          </div>
-          ${cform.hidden("username")}
-          ${cform.hidden("referrer")}
+          <input type="submit" name="submit" class="btn btn-primary" value="${formtext.button.authenticate}" />
+          <input tal:condition="allowgooglecodereminder"
+              type="submit" name="submit" class="btn btn-primary" value="${formtext.button.codereminder}" />
         </tal:code>
-        <div class="control-group">
-          <div class="controls">
-            <tal:email tal:condition="python: not send_submitted and not validate_submitted">
-              <input type="submit" name="submit" class="btn btn-primary" value="${formtext.button.username}" />
-            </tal:email>
-            <tal:code tal:condition="python: send_submitted or validate_submitted">
-              <input type="submit" name="submit" class="btn btn-primary" value="${formtext.button.authenticate}" />
-              <input tal:condition="allowgooglecodereminder"
-                  type="submit" name="submit" class="btn btn-primary" value="${formtext.button.codereminder}" />
-            </tal:code>
-          </div>
-        </div>
-      </fieldset>
-    </form>
-  </metal:content>
-</metal:main
+      </div>
+    </div>
+  </fieldset>
+</form>
