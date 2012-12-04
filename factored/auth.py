@@ -9,7 +9,6 @@ from factored.utils import make_random_code
 from datetime import datetime
 from datetime import timedelta
 from factored.utils import get_google_auth_code
-from factored.utils import get_context
 from factored.utils import create_user
 from factored.utils import get_barcode_image
 import copy
@@ -127,11 +126,6 @@ class BaseAuthView(object):
         self.combined_formtext = CombinedDict(
             req.registry['formtext'], self.formtext)
 
-    @property
-    def allowgooglecodereminder(self):
-        return self.req.registry['settings']['allowgooglecodereminder'] and \
-            self.name == 'Google Auth'
-
     def get_user(self, username):
         user = DBSession.query(User).filter_by(username=username).first()
         if user is None:
@@ -146,6 +140,11 @@ class BaseAuthView(object):
 
     def user_form_submitted_successfully(self, user):
         pass
+
+    @property
+    def allowgooglecodereminder(self):
+        return self.req.registry['settings']['allowgooglecodereminder'] \
+            and self.name == 'Google Auth'
 
     def __call__(self):
         req = self.req
@@ -203,7 +202,7 @@ class BaseAuthView(object):
             self.uform.data.get('referrer', req.params.get('referrer', '')))
         self.uform.data.update({'referrer': referrer})
         self.cform.data.update({'referrer': referrer})
-        return get_context(req, uform=FormRenderer(self.uform),
+        return dict(uform=FormRenderer(self.uform),
             cform=FormRenderer(self.cform), send_submitted=self.send_submitted,
             validate_submitted=self.validate_submitted,
             content_renderer=self.content_renderer,

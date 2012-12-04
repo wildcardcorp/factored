@@ -4,7 +4,6 @@ import base64
 import struct
 import hmac
 import hashlib
-from factored.templates import TemplateRendererFactory
 
 import random
 try:
@@ -82,19 +81,6 @@ def get_google_auth_code(secretkey, tm=None):
     code &= 0x7FFFFFFF
     code %= 1000000
     return "%06d" % code
-
-
-def get_context(req, **kwargs):
-    kwargs['static_path'] = req.registry['settings']['static_path']
-    kwargs['req'] = req
-    templates = TemplateRendererFactory(req, kwargs)
-    kwargs['templates'] = templates
-    def render(name):
-        return templates.render('templates/%s' % name)
-    kwargs['render'] = render
-    if 'content_renderer' not in kwargs:
-        kwargs['content_renderer'] = 'templates/auth-chooser.pt'
-    return kwargs
 
 
 def create_user(username):

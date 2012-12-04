@@ -9,8 +9,9 @@ from factored.finders import getUserFinderPlugin
 from factored import TEMPLATE_CUSTOMIZATIONS
 import os
 from pyramid_mailer.mailer import Mailer
-from factored.utils import get_context
 import urllib
+from factored import subscribers
+from factored.request import Request
 
 
 def notfound(req):
@@ -41,8 +42,8 @@ def auth_chooser(req):
                 'name': plugin.name,
                 'url': os.path.join(base_path, plugin.path)
                 })
-    return get_context(req, auth_types=auth_types,
-                            referrer=req.params.get('referrer', ''))
+    return dict(auth_types=auth_types,
+                referrer=req.params.get('referrer', ''))
 
 
 def get_settings(config, prefix):
@@ -83,6 +84,8 @@ class Authenticator(object):
                     appname="REPLACEME", auth_timeout='7200',
                     auth_remember_timeout='86400',
                     **settings):
+
+        # Gather settings
         self.app = app
         self.appname = appname
         self.supported_auth_schemes = _tolist(supported_auth_schemes)
@@ -103,6 +106,7 @@ class Authenticator(object):
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
 
+        # Auto user finder setup
         finder_name = settings.get('autouserfinder', None)
         if finder_name:
             plugin = getUserFinderPlugin(finder_name)
@@ -112,7 +116,8 @@ class Authenticator(object):
             else:
                 raise Exception('User finder not found: %s', finder_name)
 
-        config = Configurator(settings=settings)
+        # start pyramid application configuration
+        config = Configurator(settings=settings, request_factory=Request)
         for plugin in getFactoredPlugins():
             config.add_route(plugin.name, os.path.join(base_auth_url,
                                                        plugin.path))
@@ -122,9 +127,11 @@ class Authenticator(object):
         config.add_view(auth_chooser, route_name='auth',
             renderer='templates/layout.pt')
 
+        # setup template customization registration
         if TEMPLATE_CUSTOMIZATIONS not in config.registry:
             config.registry[TEMPLATE_CUSTOMIZATIONS] = {}
 
+        # static paths for resources
         self.static_path = os.path.join(base_auth_url, 'authstatic')
         config.add_static_view(name=self.static_path,
                                path='factored:static')
@@ -135,6 +142,8 @@ class Authenticator(object):
         config.registry['settings'] = self.__dict__
         config.registry['formtext'] = nested_settings(
             get_settings(settings, 'formtext.'))
+
+        config.scan()
         self.pyramid = config.make_wsgi_app()
 
     def __call__(self, environ, start_response):
