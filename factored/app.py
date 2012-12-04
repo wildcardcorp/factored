@@ -6,6 +6,7 @@ from pyramid.httpexceptions import HTTPFound
 from factored.models import DBSession
 from factored.auth import getFactoredPlugins, getFactoredPlugin
 from factored.finders import getUserFinderPlugin
+from factored import TEMPLATE_CUSTOMIZATIONS
 import os
 from pyramid_mailer.mailer import Mailer
 from factored.utils import get_context
@@ -120,6 +121,9 @@ class Authenticator(object):
         config.add_route('auth', base_auth_url)
         config.add_view(auth_chooser, route_name='auth',
             renderer='templates/layout.pt')
+
+        if TEMPLATE_CUSTOMIZATIONS not in config.registry:
+            config.registry[TEMPLATE_CUSTOMIZATIONS] = {}
 
         self.static_path = os.path.join(base_auth_url, 'authstatic')
         config.add_static_view(name=self.static_path,

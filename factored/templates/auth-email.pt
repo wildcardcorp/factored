@@ -1,0 +1,14 @@
+<div class="control-group" tal:define="error python: 'username' in uform.form.errors"
+    tal:attributes="class python: error and 'error control-group' or 'control-group'">
+  <label class="control-label" for="username">${formtext.username.label}</label>
+  <div class="controls">
+    ${uform.text("username", size=30)}
+    <span class="help-inline" tal:condition="error">
+      ${uform.errorlist("username")}
+    </span>
+    <p class="help-block">
+      ${formtext.username.desc}
+    </p>
+  </div>
+</div>
+${uform.hidden("referrer")}
