@@ -250,6 +250,75 @@ to run::
     ../bin/gunicorn_paste --workers=2 develop.ini
 
 
+Customizing Templates
+---------------------
+
+Use pcreate to generate package skeleton:
+
+    ./bin/pcreate --template=starter factored_customize
+    cd factored_customize
+
+To register template overrides customize __init__.py:
+
+    from factored.templates import registerTemplateCustomizations
+
+    def includeme(config):
+        import factored_customize as pkg
+        registerTemplateCustomizations(config, 'templates', pkg)
+
+Modify paster ini file to include pyramid addon:
+
+    pyramid.includes =
+        ...
+        factored_customize
+
+
+Available Customizable Templates
+--------------------------------
+
+meta.pt
+    Override metadata in the head tag.
+
+includes.pt
+    Override includes in the head tag.
+
+headbottom.pt
+    Add additional html to the bottom of the head tag. Empty by default.
+
+top.pt
+    Renders at top of container. Empty by default.
+
+title.pt
+    Renders title of application.
+
+abovecontent.pt
+    Renders above content. Empty by default.
+
+auth.pt
+    Authentication layout template.
+
+auth-code.pt
+    Code input.
+
+auth-email.pt
+    Email input.
+
+auth-controls.pt
+    Form controls.
+
+auth-chooser.pt
+    Authentication system chooser.
+        
+belowcontent.pt
+    Below the content. Empty by default.
+
+footer.pt
+    Application footer.
+
+bottom.pt
+    Very bottom of layout. Empty by default.
+    
+
 Credit
 ------
 

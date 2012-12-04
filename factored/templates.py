@@ -22,9 +22,8 @@ class TemplateRendererFactory(object):
         self.req = req
         self.customizations = req.registry[TEMPLATE_CUSTOMIZATIONS]
 
-    def render(self, tmpl):
+    def render(self, tmpl, package=None):
         try:
-            package = None
             tmpl_name = os.path.basename(tmpl)
             if tmpl_name in self.customizations:
                 package, tmpl = self.customizations[tmpl_name]

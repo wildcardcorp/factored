@@ -2,26 +2,26 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <tal:meta tal:content="structure python: render('meta.pt')" />
-    <tal:includes tal:content="structure python: render('includes.pt')" />
-    <tal:headbottom tal:content="structure python: render('headbottom.pt')" />
+    <div tal:replace="structure python: render('meta.pt')" />
+    <div tal:replace="structure python: render('includes.pt')" />
+    <div tal:replace="structure python: render('headbottom.pt')" />
   </head>
 
   <body>
     <div class="container">
-      <tal:top tal:content="structure python: render('top.pt')" />
+      <div replace="structure python: render('top.pt')" />
       <div class="content-container">
-        <tal:bottom tal:content="structure python: render('title.pt')" />
+        <div tal:replace="structure python: render('title.pt')" />
         <hr>
 
-        <tal:abovecontent tal:content="structure python: render('abovecontent.pt')" />
+        <div tal:replace="structure python: render('abovecontent.pt')" />
         <div class="jumbotron" tal:content="structure python: templates.render(content_renderer)" />
-        <tal:belowcontent tal:content="structure python: render('belowcontent.pt')" />
+        <div tal:replace="structure python: render('belowcontent.pt')" />
 
         <hr>
-        <tal:abovecontent tal:content="structure python: render('footer.pt')" />
+        <div tal:replace="structure python: render('footer.pt')" />
       </div>
-      <tal:bottom tal:content="structure python: render('bottom.pt')" />
+      <div tal:replace="structure python: render('bottom.pt')" />
     </div> <!-- /container -->
 
     <!-- Le javascript
