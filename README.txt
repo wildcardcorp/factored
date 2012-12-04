@@ -93,7 +93,32 @@ allowgooglecodereminder.sender
     If using allowing code reminders, the email from address of reminder
 allowgooglecodereminder.body
     If using allowing code reminders, the email body of reminder
-
+formtext.title
+    customize title of form
+formtext.legend
+    customize legend of form
+formtext.username.label
+    customize username label
+formtext.username.desc
+    customize username description
+formtext.code.label
+    customize code label
+formtext.code.desc
+    customize code description
+formtext.button.username
+    customize username buttion text
+formtext.button.authenticate
+    customize athenticate buttion text
+formtext.button.codereminder
+    customize code reminder buttion text
+formtext.error.invalid_username_code
+    customize invalid username code text
+formtext.error.invalid_code
+    customize invalid code text
+formtext.error.invalid_username
+    customize invalid username text
+formtext.error.code_reminder
+    customize invalid code reminder text
 
 autouserfinder SQL configuration options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

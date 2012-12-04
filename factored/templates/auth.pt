@@ -40,22 +40,23 @@
             <div class="controls">
               <label class="checkbox">
                 ${cform.checkbox("remember")}
-                Keep me logged in for ${remember_duration}.                
               </label>
             </div>
           </div>
           ${cform.hidden("username")}
           ${cform.hidden("referrer")}
         </tal:code>
-        <div class="form-actions">
-          <tal:email tal:condition="python: not send_submitted and not validate_submitted">
-            <input type="submit" name="submit" class="btn btn-primary" value="${formtext.button.username}" />
-          </tal:email>
-          <tal:code tal:condition="python: send_submitted or validate_submitted">
-            <input type="submit" name="submit" class="btn btn-primary" value="${formtext.button.authenticate}" />
-            <input tal:condition="allowgooglecodereminder"
-                type="submit" name="submit" class="btn btn-primary" value="${formtext.button.codereminder}" />
-          </tal:code
+        <div class="control-group">
+          <div class="controls">
+            <tal:email tal:condition="python: not send_submitted and not validate_submitted">
+              <input type="submit" name="submit" class="btn btn-primary" value="${formtext.button.username}" />
+            </tal:email>
+            <tal:code tal:condition="python: send_submitted or validate_submitted">
+              <input type="submit" name="submit" class="btn btn-primary" value="${formtext.button.authenticate}" />
+              <input tal:condition="allowgooglecodereminder"
+                  type="submit" name="submit" class="btn btn-primary" value="${formtext.button.codereminder}" />
+            </tal:code>
+          </div>
         </div>
       </fieldset>
     </form>

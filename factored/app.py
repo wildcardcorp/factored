@@ -52,6 +52,19 @@ def get_settings(config, prefix):
     return settings
 
 
+def nested_settings(settings):
+    newsettings = {}
+    for key, val in settings.items():
+        parts = key.split('.')
+        loc = newsettings
+        for part in parts[:-1]:
+            if part not in loc:
+                loc[part] = {}
+            loc = loc[part]
+        loc[parts[-1]] = val
+    return newsettings
+
+
 def normalize_settings(settings):
     for key, val in settings.items():
         if val in ('true', 'True', 't'):
@@ -116,6 +129,8 @@ class Authenticator(object):
         # add some things to registry
         config.registry['mailer'] = Mailer.from_settings(settings)
         config.registry['settings'] = self.__dict__
+        config.registry['formtext'] = nested_settings(
+            get_settings(settings, 'formtext.'))
         self.pyramid = config.make_wsgi_app()
 
     def __call__(self, environ, start_response):

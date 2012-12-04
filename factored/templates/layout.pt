@@ -14,9 +14,42 @@
 
     <!-- Le styles -->
     <link href="${static_path}/bootstrap/css/bootstrap.css" rel="stylesheet">
-    <style>
+    <style type="text/css">
       body {
-        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+        padding-top: 40px;
+        padding-bottom: 40px;
+        background-color: #f5f5f5;
+      }
+
+      .content-container {
+        max-width: 500px;
+        padding: 19px 29px 29px;
+        margin: 0 auto 20px;
+        background-color: #fff;
+        border: 1px solid #e5e5e5;
+        -webkit-border-radius: 5px;
+           -moz-border-radius: 5px;
+                border-radius: 5px;
+        -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+           -moz-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+                box-shadow: 0 1px 2px rgba(0,0,0,.05);
+      }
+      .content-container .form-signin-heading,
+      .content-container .checkbox {
+        margin-bottom: 10px;
+      }
+      .content-container input[type="text"],
+      .content-container input[type="password"] {
+        font-size: 16px;
+        height: auto;
+        margin-bottom: 15px;
+        padding: 7px 9px;
+      }
+      .form-horizontal .control-label {
+        width: 110px;
+      }
+      .form-horizontal .controls{
+        margin-left: 120px;
       }
     </style>
     <link href="${static_path}/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
@@ -28,38 +61,28 @@
   </head>
 
   <body>
-
-    <div class="navbar navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="brand" href="/">
-            <metal:sitetitle define-slot="site-title">
-              Authenticator
-            </metal:sitetitle>
-          </a>
-          <div class="nav-collapse">
-            <ul class="nav">
-              <li class="active"><a href="/">Home</a></li>
-            </ul>
-          </div><!--/.nav-collapse -->
-        </div>
-      </div>
-    </div>
-
     <div class="container">
-      <metal:content define-slot="content" />
-      <footer>
-        <p>
-          <a href="http://www.wildcardcorp.com/?utm_source=sourcecode&utm_medium=factored&utm_campaign=directlink">
-            <img src="${static_path}/poweredby_wildcard.png" />
-          </a>
-        </p>
-      </footer>
+      <div class="content-container">
+        <h3 class="muted">
+          <metal:sitetitle define-slot="site-title">
+            Authenticator
+          </metal:sitetitle>
+        </h3>
+        <hr>
+
+        <div class="jumbotron">
+          <metal:content define-slot="content" />  
+        </div>
+
+        <hr>
+        <footer>
+          <p>
+            <a href="http://www.wildcardcorp.com/?utm_source=sourcecode&utm_medium=factored&utm_campaign=directlink">
+              <img src="${static_path}/poweredby_wildcard.png" />
+            </a>
+          </p>
+        </footer>
+      </div>
     </div> <!-- /container -->
 
     <!-- Le javascript

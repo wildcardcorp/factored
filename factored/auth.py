@@ -17,6 +17,29 @@ import copy
 _auth_plugins = []
 
 
+class CombinedDict(object):
+    def __init__(self, *args):
+        self.dicts = args
+
+    def __getitem__(self, name):
+        """
+        need to handle nested dictionaries also
+        """
+        founddicts = []
+        for dic in self.dicts:
+            if name in dic:
+                val = dic[name]
+                if type(val) == dict:
+                    founddicts.append(val)
+                else:
+                    return val
+        if founddicts:
+            return CombinedDict(*founddicts)
+        raise KeyError
+
+    __getattr__ = __getitem__
+
+
 class BaseSchema(Schema):
     filter_extra_fields = True
     allow_extra_fields = True
@@ -100,6 +123,8 @@ class BaseAuthView(object):
         else:
             rto = '%i minutes' % rto
         self.remember_duration = rto
+        self.combined_formtext = CombinedDict(
+            req.registry['formtext'], self.formtext)
 
     @property
     def allowgooglecodereminder(self):
@@ -180,7 +205,8 @@ class BaseAuthView(object):
         return get_context(req, uform=FormRenderer(self.uform),
             cform=FormRenderer(self.cform), send_submitted=self.send_submitted,
             validate_submitted=self.validate_submitted,
-            formtext=self.formtext, allowgooglecodereminder=self.allowgooglecodereminder,
+            formtext=self.combined_formtext,
+            allowgooglecodereminder=self.allowgooglecodereminder,
             remember_duration=self.remember_duration)
 
 

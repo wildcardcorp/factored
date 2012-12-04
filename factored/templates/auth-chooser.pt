@@ -1,6 +1,6 @@
 <metal:main use-macro="load: layout.pt">
   <metal:content metal:fill-slot="content">
-    <h1>Select Authentication Type</h1>
+    <h2>Select Authentication Type</h2>
 
     <ul>
       <tal:types tal:repeat="type auth_types">
