@@ -78,52 +78,21 @@ def normalize_settings(settings):
 
 class Authenticator(object):
 
-    def __init__(self, app, global_config, base_auth_url='/auth',
-                    supported_auth_schemes="Google Auth",
-                    email_auth_window='120', allowgooglecodereminder='false',
-                    appname="REPLACEME", auth_timeout='7200',
-                    auth_remember_timeout='86400',
-                    **settings):
-
-        # Gather settings
-        self.app = app
-        self.appname = appname
-        self.supported_auth_schemes = _tolist(supported_auth_schemes)
-        self.base_auth_url = base_auth_url
-        self.email_auth_window = int(email_auth_window)
-        self.auth_timeout = int(auth_timeout)
-        self.auth_remember_timeout = int(auth_remember_timeout)
-
-        auth_settings = normalize_settings(get_settings(settings, 'auth_tkt.'))
-        self.auth_tkt_policy = AuthenticationPolicy(**auth_settings)
-        self.email_auth_settings = get_settings(settings, 'email_auth.')
-        self.allowgooglecodereminder = \
-            allowgooglecodereminder.lower() == 'true' or False
-        self.allowgooglecodereminder_settings = get_settings(settings,
-            'allowgooglecodereminder.')
+    def __init__(self, app, global_config, **settings):
+        self.initialize_settings(app, settings)
 
         # db configuration
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
 
-        # Auto user finder setup
-        finder_name = settings.get('autouserfinder', None)
-        if finder_name:
-            plugin = getUserFinderPlugin(finder_name)
-            if plugin:
-                self.userfinder = plugin(**get_settings(settings,
-                    'autouserfinder.'))
-            else:
-                raise Exception('User finder not found: %s', finder_name)
+        self.setup_autouserfinder(settings)
 
         # start pyramid application configuration
         config = Configurator(settings=settings, request_factory=Request)
-        for plugin in getFactoredPlugins():
-            config.add_route(plugin.name, os.path.join(base_auth_url,
-                                                       plugin.path))
-            config.add_view(plugin, route_name=plugin.name,
-                            renderer='templates/layout.pt')
-        config.add_route('auth', base_auth_url)
+
+        self.setup_plugins(config)    
+
+        config.add_route('auth', self.base_auth_url)
         config.add_view(auth_chooser, route_name='auth',
             renderer='templates/layout.pt')
 
@@ -132,7 +101,7 @@ class Authenticator(object):
             config.registry[TEMPLATE_CUSTOMIZATIONS] = {}
 
         # static paths for resources
-        self.static_path = os.path.join(base_auth_url, 'authstatic')
+        self.static_path = os.path.join(self.base_auth_url, 'authstatic')
         config.add_static_view(name=self.static_path,
                                path='factored:static')
         config.add_notfound_view(notfound, append_slash=True)
@@ -145,6 +114,41 @@ class Authenticator(object):
 
         config.scan()
         self.pyramid = config.make_wsgi_app()
+
+    def setup_plugins(self, config):
+        for plugin in getFactoredPlugins():
+            config.add_route(plugin.name,
+                os.path.join(self.base_auth_url, plugin.path))
+            config.add_view(plugin, route_name=plugin.name,
+                            renderer='templates/layout.pt')
+
+    def setup_autouserfinder(self, settings):
+        finder_name = settings.get('autouserfinder', None)
+        if finder_name:
+            plugin = getUserFinderPlugin(finder_name)
+            if plugin:
+                self.userfinder = plugin(**get_settings(settings,
+                    'autouserfinder.'))
+            else:
+                raise Exception('User finder not found: %s', finder_name)
+
+    def initialize_settings(self, app, settings):
+        self.app = app
+        self.appname = settings.pop('appname', 'REPLACEME')
+        self.supported_auth_schemes = _tolist(
+            settings.pop('supported_auth_schemes', "Google Auth"))
+        self.base_auth_url = settings.pop('base_auth_url', '/auth')
+        self.email_auth_window = int(settings.pop('email_auth_window', '120'))
+        self.auth_timeout = int(settings.pop('auth_timeout', '7200'))
+        self.auth_remember_timeout = int(settings.pop('auth_remember_timeout', '86400'))
+
+        auth_settings = normalize_settings(get_settings(settings, 'auth_tkt.'))
+        self.auth_tkt_policy = AuthenticationPolicy(**auth_settings)
+        self.email_auth_settings = get_settings(settings, 'email_auth.')
+        self.allowgooglecodereminder = \
+            settings.pop('allowgooglecodereminder', 'false').lower() == 'true' or False
+        self.allowgooglecodereminder_settings = get_settings(settings,
+            'allowgooglecodereminder.')
 
     def __call__(self, environ, start_response):
         auth = AuthTktAuthenticator(self.auth_tkt_policy, environ)

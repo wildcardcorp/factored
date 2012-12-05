@@ -5,7 +5,7 @@
     </tal:email>
     <tal:code tal:condition="python: send_submitted or validate_submitted">
       <input type="submit" name="submit" class="btn btn-primary" value="${formtext.button.authenticate}" />
-      <input tal:condition="allowgooglecodereminder"
+      <input tal:condition="allow_code_reminder"
           type="submit" name="submit" class="btn btn-primary" value="${formtext.button.codereminder}" />
     </tal:code>
   </div>

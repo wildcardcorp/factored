@@ -11,7 +11,7 @@ from datetime import timedelta
 from factored.utils import get_google_auth_code
 from factored.utils import create_user
 from factored.utils import get_barcode_image
-import copy
+from copy import deepcopy as copy
 from pyramid.util import strings_differ
 
 _auth_plugins = []
@@ -108,8 +108,6 @@ class BaseAuthView(object):
         self.cform = Form(req, schema=self.code_schema)
         self.message_settings = req.registry['settings']['email_auth_settings']
         self.send_submitted = self.validate_submitted = False
-        self.googleauthcodereminder_settings = \
-            req.registry['settings']['allowgooglecodereminder_settings']
         self.auth_timeout = req.registry['settings']['auth_timeout']
         self.auth_remember_timeout = \
             req.registry['settings']['auth_remember_timeout']
@@ -142,28 +140,24 @@ class BaseAuthView(object):
         pass
 
     @property
-    def allowgooglecodereminder(self):
-        return self.req.registry['settings']['allowgooglecodereminder'] \
-            and self.name == 'Google Auth'
+    def allow_code_reminder(self):
+        return False
+
+    def send_code_reminder(self, user):
+        pass
 
     def __call__(self):
         req = self.req
         if req.method == "POST":
             if req.POST.get('submit', '') == self.formtext['button']['codereminder'] \
-                    and self.allowgooglecodereminder:
+                    and self.allow_code_reminder:
                 self.validate_submitted = True
                 self.cform.validate()
                 self.cform.errors['code'] = self.error_code_reminder
                 username = self.cform.data['username']
                 user = self.get_user(username)
                 if 'username' not in self.cform.errors and user is not None:
-                    mailer = self.req.registry['mailer']
-                    message = self.googleauthcodereminder_settings.copy()
-                    message['recipients'] = [username]
-                    message['body'] = message['body'].replace('{code}',
-                        get_barcode_image(username, user.secret,
-                            self.req.registry['settings']['appname']))
-                    mailer.send(Message(**message))
+                    self.send_code_reminder(user)
             elif req.POST.get('submit', '') == self.formtext['button']['username']:
                 if self.uform.validate():
                     username = self.uform.data['username']
@@ -207,7 +201,6 @@ class BaseAuthView(object):
             validate_submitted=self.validate_submitted,
             content_renderer=self.content_renderer,
             formtext=self.combined_formtext,
-            allowgooglecodereminder=self.allowgooglecodereminder,
             remember_duration=self.remember_duration)
 
 
@@ -215,7 +208,7 @@ class GoogleAuthView(BaseAuthView):
     name = 'Google Auth'
     path = 'ga'
 
-    formtext = copy.deepcopy(BaseAuthView.formtext)
+    formtext = copy(BaseAuthView.formtext)
     formtext.update({
         'title': u'Google Authenticator',
         'legend': u'Use android app to authenticate...'
@@ -225,6 +218,22 @@ class GoogleAuthView(BaseAuthView):
         'desc': u"Username you've signed up with."
     })
     formtext['code']['desc'] = u'As generated with google authenticator.'
+
+    @property
+    def allow_code_reminder(self):
+        return self.req.registry['settings']['allowgooglecodereminder']
+
+    def send_code_reminder(self, user):
+        mailer = self.req.registry['mailer']
+        code_reminder_settings = \
+            self.req.registry['settings']['allowgooglecodereminder_settings'].copy()
+        username = user.username
+        message = code_reminder_settings.copy()
+        message['recipients'] = [username]
+        message['body'] = message['body'].replace('{code}',
+            get_barcode_image(username, user.secret,
+                self.req.registry['settings']['appname']))
+        mailer.send(Message(**message))
 
     def check_code(self, user):
         tm = int(time.time() / 30)
@@ -256,7 +265,7 @@ class EmailAuthView(BaseAuthView):
     username_schema = EmailAuthSchema
     code_schema = EmailAuthCodeSchema
 
-    formtext = copy.deepcopy(BaseAuthView.formtext)
+    formtext = copy(BaseAuthView.formtext)
     formtext.update({
         'title': u'Email Authenticator',
         'legend': u'Authenticate through your email...'
