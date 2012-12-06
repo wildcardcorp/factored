@@ -12,6 +12,8 @@ from factored.request import Request
 
 
 def _tolist(val):
+    if type(val) == list:
+        return val
     lines = val.splitlines()
     return [l.strip() for l in lines if l.strip()]
 
@@ -60,7 +62,7 @@ class Authenticator(object):
         # start pyramid application configuration
         config = Configurator(settings=settings, request_factory=Request)
 
-        self.setup_plugins(config)
+        self.setup_plugins(config, settings)
 
         from factored.views import auth_chooser, notfound
         config.add_route('auth', self.base_auth_url)
@@ -87,10 +89,12 @@ class Authenticator(object):
         config.scan()
         self.pyramid = config.make_wsgi_app()
 
-    def setup_plugins(self, config):
+    def setup_plugins(self, config, settings):
         from factored.plugins import getFactoredPlugins
         from factored.views import AuthView
         for plugin in getFactoredPlugins():
+            setattr(self, '%s_settings' % plugin.path,
+                get_settings(settings, '%s.' % plugin.path))
             config.add_route(plugin.name,
                 os.path.join(self.base_auth_url, plugin.path))
             config.add_view(AuthView, route_name=plugin.name,
@@ -118,7 +122,6 @@ class Authenticator(object):
 
         auth_settings = normalize_settings(get_settings(settings, 'auth_tkt.'))
         self.auth_tkt_policy = AuthenticationPolicy(**auth_settings)
-        self.email_auth_settings = get_settings(settings, 'email_auth.')
         self.allowcodereminder = \
             settings.pop('allowcodereminder', 'false').lower() == 'true' or False
         self.allowcodereminder_settings = get_settings(settings,

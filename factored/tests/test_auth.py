@@ -54,7 +54,7 @@ class BaseTest(unittest.TestCase):
         kwargs.update({'path': path})
         req = testing.DummyRequest(*args, **kwargs)
         req.registry['settings'] = {
-            'email_auth_settings': {
+            'em_settings': {
                 'subject': 'Authentication Request',
                 'sender': 'foo@bar.com',
                 'body': "You're temporary access code is: {code}"},

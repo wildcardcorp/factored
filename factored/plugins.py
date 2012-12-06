@@ -204,7 +204,7 @@ class EmailAuthPlugin(BasePlugin):
 
     def __init__(self, req):
         super(EmailAuthPlugin, self).__init__(req)
-        self.message_settings = req.registry['settings']['email_auth_settings']
+        self.message_settings = req.registry['settings']['%s_settings' % self.path]
 
     def user_form_submitted_successfully(self, user):
         username = self.uform.data['username']

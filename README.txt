@@ -67,11 +67,11 @@ supported_auth_schemes
 email_auth_window
     If using email authentication, the window of time the user has to enter
     correct code in.
-email_auth.subject
+em.subject
     Email authencation subject used.
-email_auth.sender
+em.sender
     Email authentication from address.
-email_auth.body
+em.body
     Email Authentication text body. `{code}` will be replaced with the code.
 pyramid. prefixed options
     Configuration passed directly into pyramid configuration.
@@ -198,9 +198,9 @@ An example to follow if you're not using a git checkout::
 
     email_auth_window = 120
     # in seconds
-    email_auth.subject = Authentication Request
-    email_auth.sender = foo@bar.com
-    email_auth.body = 
+    em.subject = Authentication Request
+    em.sender = foo@bar.com
+    em.body = 
         You have requested authentication.
         Your temporary access code is: {code}
 
