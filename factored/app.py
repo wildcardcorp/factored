@@ -2,48 +2,18 @@ from pyramid.config import Configurator
 from sqlalchemy import engine_from_config
 from wsgiproxy.exactproxy import proxy_exact_request
 from factored.auth_tkt import AuthTktAuthenticator, AuthenticationPolicy
-from pyramid.httpexceptions import HTTPFound
 from factored.models import DBSession
-from factored.auth import getFactoredPlugins, getFactoredPlugin
 from factored.finders import getUserFinderPlugin
 from factored import TEMPLATE_CUSTOMIZATIONS
 import os
 from pyramid_mailer.mailer import Mailer
-import urllib
 from factored import subscribers
 from factored.request import Request
-
-
-def notfound(req):
-    return HTTPFound(location="%s?%s" % (
-        req.registry['settings']['base_auth_url'],
-        urllib.urlencode({'referrer': req.url})))
 
 
 def _tolist(val):
     lines = val.splitlines()
     return [l.strip() for l in lines if l.strip()]
-
-
-def auth_chooser(req):
-    auth_types = []
-    settings = req.registry['settings']
-    base_path = settings['base_auth_url']
-    supported_types = settings['supported_auth_schemes']
-    if len(supported_types) == 1:
-        plugin = getFactoredPlugin(supported_types[0])
-        referrer = urllib.urlencode(
-            {'referrer': req.params.get('referrer', '')})
-        raise HTTPFound(location="%s/%s?%s" % (base_path, plugin.path,
-                                               referrer))
-    for plugin in getFactoredPlugins():
-        if plugin.name in supported_types:
-            auth_types.append({
-                'name': plugin.name,
-                'url': os.path.join(base_path, plugin.path)
-                })
-    return dict(auth_types=auth_types,
-                referrer=req.params.get('referrer', ''))
 
 
 def get_settings(config, prefix):
@@ -90,8 +60,9 @@ class Authenticator(object):
         # start pyramid application configuration
         config = Configurator(settings=settings, request_factory=Request)
 
-        self.setup_plugins(config)    
+        self.setup_plugins(config)
 
+        from factored.views import auth_chooser, notfound
         config.add_route('auth', self.base_auth_url)
         config.add_view(auth_chooser, route_name='auth',
             renderer='templates/layout.pt')
@@ -116,10 +87,16 @@ class Authenticator(object):
         self.pyramid = config.make_wsgi_app()
 
     def setup_plugins(self, config):
+        from factored.plugins import getFactoredPlugins
+        from factored.views import AuthView
         for plugin in getFactoredPlugins():
+            def view(req):
+                plugininst = plugin(req)
+                req['selected-plugin'] = plugininst
+                return AuthView(req, plugininst)()
             config.add_route(plugin.name,
                 os.path.join(self.base_auth_url, plugin.path))
-            config.add_view(plugin, route_name=plugin.name,
+            config.add_view(view, route_name=plugin.name,
                             renderer='templates/layout.pt')
 
     def setup_autouserfinder(self, settings):
@@ -145,10 +122,10 @@ class Authenticator(object):
         auth_settings = normalize_settings(get_settings(settings, 'auth_tkt.'))
         self.auth_tkt_policy = AuthenticationPolicy(**auth_settings)
         self.email_auth_settings = get_settings(settings, 'email_auth.')
-        self.allowgooglecodereminder = \
-            settings.pop('allowgooglecodereminder', 'false').lower() == 'true' or False
-        self.allowgooglecodereminder_settings = get_settings(settings,
-            'allowgooglecodereminder.')
+        self.allowcodereminder = \
+            settings.pop('allowcodereminder', 'false').lower() == 'true' or False
+        self.allowcodereminder_settings = get_settings(settings,
+            'allowcodereminder.')
 
     def __call__(self, environ, start_response):
         auth = AuthTktAuthenticator(self.auth_tkt_policy, environ)

@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2.0 (unreleased)
+----------------
+
+- refactor so it's more modular
+
+- be able to easily customize all templates
+
+- be able to customize text
+
+
 1.2a1 (unreleased)
 ------------------
 

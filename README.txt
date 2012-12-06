@@ -84,14 +84,14 @@ mail. prefixed options
 autouserfinder
     Specify a plugin that will automatically find users for the system to allow
     authentication for. Pre-packaged plugins include `SQL` and `Email Domain`.
-allowgooglecodereminder
+allowcodereminder
     (true|false) value defaulting to false that allows the user, if the username
     is an email, to get a reminder of their code sent to them.
-allowgooglecodereminder.subject
+allowcodereminder.subject
     If using allowing code reminders, the email subject of reminder
-allowgooglecodereminder.sender
+allowcodereminder.sender
     If using allowing code reminders, the email from address of reminder
-allowgooglecodereminder.body
+allowcodereminder.body
     If using allowing code reminders, the email body of reminder
 formtext.title
     customize title of form
@@ -209,10 +209,10 @@ An example to follow if you're not using a git checkout::
     autouserfinder.email_field = email
     autouserfinder.connection_string = sqlite:///%(here)s/users.db
 
-    allowgooglecodereminder = true
-    allowgooglecodereminder.subject = Authentication code reminder
-    allowgooglecodereminder.sender = foo@bar.com
-    allowgooglecodereminder.body = 
+    allowcodereminder = true
+    allowcodereminder.subject = Authentication code reminder
+    allowcodereminder.sender = foo@bar.com
+    allowcodereminder.body = 
         You have requested code reminder.
         Your google auth code url is: {code}
 

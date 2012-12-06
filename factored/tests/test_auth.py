@@ -55,8 +55,8 @@ class BaseTest(unittest.TestCase):
                 'body': "You're temporary access code is: {code}"},
             'email_auth_window': 120,
             'static_path': '/auth/static',
-            'allowgooglecodereminder_settings': {},
-            'allowgooglecodereminder': False,
+            'allowcodereminder_settings': {},
+            'allowcodereminder': False,
             'auth_timeout': 7200,
             'auth_remember_timeout': 86400
         }
@@ -92,47 +92,49 @@ class TestGoogleAuth(BaseTest):
                 secret=generate_random_google_code())
             DBSession.add(self.user)
 
+    def _makeOne(self, request):
+        from factored.views import AuthView
+        from factored.plugins import GoogleAuthPlugin
+        plugin = GoogleAuthPlugin(request)
+        return AuthView(request, plugin)
+
     def test_blank_form(self):
-        from factored.auth import GoogleAuthView
         request = self.get_request()
-        info = GoogleAuthView(request)()
+        info = self._makeOne(request)()
         renderer = info['uform']
         form = renderer.form
         self.assertTrue('username' not in form.data)
 
     def test_submit_without_username(self):
-        from factored.auth import GoogleAuthView
         request = self.get_request(post={'submit': 'Next'})
-        info = GoogleAuthView(request)()
+        view = self._makeOne(request)
+        info = view()
         renderer = info['uform']
         form = renderer.form
         self.assertTrue('username' in form.errors)
 
     def test_submit_with_wrong_code(self):
-        from factored.auth import GoogleAuthView
         request = self.get_request(
             post={'submit': 'Authenticate',
                   'username': 'foo',
                   'code': '377474'})
-        info = GoogleAuthView(request)()
+        info = self._makeOne(request)()
         renderer = info['cform']
         form = renderer.form
         self.assertTrue('username' not in form.errors)
         self.assertTrue('code' in form.errors)
 
     def test_submit_with_wrong_username(self):
-        from factored.auth import GoogleAuthView
         request = self.get_request(
             post={'submit': 'Authenticate',
                   'username': 'bar',
                   'code': '377474'})
-        info = GoogleAuthView(request)()
+        info = self._makeOne(request)()
         renderer = info['cform']
         form = renderer.form
         self.assertTrue('code' in form.errors)
 
     def test_submit_success_with_code(self):
-        from factored.auth import GoogleAuthView
         from factored.utils import get_google_auth_code
         from factored.models import User
         user = DBSession.query(User).filter_by(username='foo').first()
@@ -140,10 +142,9 @@ class TestGoogleAuth(BaseTest):
             post={'username': 'foo', 'submit': 'Authenticate',
                   'code': get_google_auth_code(user.secret)})
         with self.assertRaises(HTTPFound):
-            GoogleAuthView(request)()
+            self._makeOne(request)()
 
     def test_submit_success_with_code_check_headers(self):
-        from factored.auth import GoogleAuthView
         from factored.utils import get_google_auth_code
         from factored.models import User
         user = DBSession.query(User).filter_by(username='foo').first()
@@ -151,7 +152,7 @@ class TestGoogleAuth(BaseTest):
             post={'username': 'foo', 'submit': 'Authenticate',
                   'code': get_google_auth_code(user.secret)})
         try:
-            GoogleAuthView(request)()
+            self._makeOne(request)()
         except HTTPFound, ex:
             self.assertTrue('test=' in ex.headers['Set-Cookie'])
 
@@ -166,46 +167,47 @@ class TestEmailAuth(BaseTest):
                 secret=generate_random_google_code())
             DBSession.add(self.user)
 
+    def _makeOne(self, request):
+        from factored.views import AuthView
+        from factored.plugins import EmailAuthPlugin
+        plugin = EmailAuthPlugin(request)
+        return AuthView(request, plugin)
+
     def test_blank_form(self):
-        from factored.auth import EmailAuthView
         request = self.get_request()
-        info = EmailAuthView(request)()
+        info = self._makeOne(request)()
         renderer = info['uform']
         form = renderer.form
         self.assertTrue('username' not in form.data)
 
     def test_not_send_mail_without_username(self):
-        from factored.auth import EmailAuthView
         request = self.get_request(post={'submit': 'Send mail'})
-        info = EmailAuthView(request)()
+        info = self._makeOne(request)()
         renderer = info['uform']
         form = renderer.form
         self.assertTrue('username' in form.errors)
 
     def test_not_send_mail_with_incorrect_username_non_email(self):
-        from factored.auth import EmailAuthView
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foobar'})
-        info = EmailAuthView(request)()
+        info = self._makeOne(request)()
         renderer = info['uform']
         form = renderer.form
         self.assertTrue('username' in form.errors)
 
     def test_not_send_mail_with_incorrect_username(self):
-        from factored.auth import EmailAuthView
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'blah@foo.com'})
-        info = EmailAuthView(request)()
+        info = self._makeOne(request)()
         renderer = info['uform']
         form = renderer.form
         self.assertTrue('username' in form.errors)
 
     def test_send_mail_with_correct_username(self):
-        from factored.auth import EmailAuthView
         from factored.models import User
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        info = EmailAuthView(request)()
+        info = self._makeOne(request)()
         renderer = info['uform']
         form = renderer.form
         self.assertTrue(len(form.errors) == 0)
@@ -214,13 +216,12 @@ class TestEmailAuth(BaseTest):
         self.assertTrue(user.generated_code in self.mailer.messages[0].body)
 
     def test_auth_correct(self):
-        from factored.auth import EmailAuthView
         from factored.models import User
 
         # first, set code
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        EmailAuthView(request)()
+        self._makeOne(request)()
         user = DBSession.query(User).filter_by(username='foo@bar.com').first()
 
         # then, auth with code
@@ -229,16 +230,15 @@ class TestEmailAuth(BaseTest):
                   'username': 'foo@bar.com',
                   'code': user.generated_code})
         with self.assertRaises(HTTPFound):
-            EmailAuthView(request)()
+            self._makeOne(request)()
 
     def test_auth_correct_sets_headers(self):
-        from factored.auth import EmailAuthView
         from factored.models import User
 
         # first, set code
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        EmailAuthView(request)()
+        self._makeOne(request)()
         user = DBSession.query(User).filter_by(username='foo@bar.com').first()
 
         # then, auth with code
@@ -247,18 +247,17 @@ class TestEmailAuth(BaseTest):
                   'username': 'foo@bar.com',
                   'code': user.generated_code})
         try:
-            EmailAuthView(request)()
+            self._makeOne(request)()
         except HTTPFound, ex:
             self.assertTrue('test=' in ex.headers['Set-Cookie'])
 
     def test_auth_fails_bad_username(self):
-        from factored.auth import EmailAuthView
         from factored.models import User
 
         # first, set code
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        EmailAuthView(request)()
+        self._makeOne(request)()
         user = DBSession.query(User).filter_by(username='foo@bar.com').first()
 
         # then, auth with code
@@ -267,7 +266,7 @@ class TestEmailAuth(BaseTest):
                   'username': 'foo3@bar.com',
                   'code': user.generated_code
                   })
-        info = EmailAuthView(request)()
+        info = self._makeOne(request)()
         renderer = info['cform']
         form = renderer.form
         self.assertTrue(len(form.errors) == 1)
@@ -275,50 +274,45 @@ class TestEmailAuth(BaseTest):
         self.assertTrue('Invalid username' in form.errors['code'])
 
     def test_auth_fails_missing_code(self):
-        from factored.auth import EmailAuthView
-
         # first, set code
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        EmailAuthView(request)()
+        self._makeOne(request)()
 
         # then, auth with code
         request = self.get_request(
             post={'submit': 'Authenticate',
                   'username': 'foo@bar.com'})
-        info = EmailAuthView(request)()
+        info = self._makeOne(request)()
         renderer = info['cform']
         form = renderer.form
         self.assertTrue(len(form.errors) == 1)
         self.assertTrue('code' in form.errors)
 
     def test_auth_fails_bad_code(self):
-        from factored.auth import EmailAuthView
-
         # first, set code
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        EmailAuthView(request)()
+        self._makeOne(request)()
 
         # then, auth with code
         request = self.get_request(
             post={'submit': 'Authenticate',
                   'username': 'foo@bar.com',
                   'code': 'random'})
-        info = EmailAuthView(request)()
+        info = self._makeOne(request)()
         renderer = info['cform']
         form = renderer.form
         self.assertTrue(len(form.errors) == 1)
         self.assertTrue('code' in form.errors)
 
     def test_auth_fails_time_limit(self):
-        from factored.auth import EmailAuthView
         from factored.models import User
 
         # first, set code
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        EmailAuthView(request)()
+        self._makeOne(request)()
         user = DBSession.query(User).filter_by(username='foo@bar.com').first()
 
         # set time back
@@ -330,7 +324,7 @@ class TestEmailAuth(BaseTest):
                   'username': 'foo@bar.com',
                   'code': user.generated_code
                   })
-        info = EmailAuthView(request)()
+        info = self._makeOne(request)()
         renderer = info['cform']
         form = renderer.form
         self.assertTrue(len(form.errors) == 1)

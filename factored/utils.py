@@ -89,3 +89,26 @@ def create_user(username):
     user = User(username=username, secret=secret)
     DBSession.add(user)
     return user
+
+
+class CombinedDict(object):
+    def __init__(self, *args):
+        self.dicts = args
+
+    def __getitem__(self, name):
+        """
+        need to handle nested dictionaries also
+        """
+        founddicts = []
+        for dic in self.dicts:
+            if name in dic:
+                val = dic[name]
+                if type(val) == dict:
+                    founddicts.append(val)
+                else:
+                    return val
+        if founddicts:
+            return CombinedDict(*founddicts)
+        raise KeyError
+
+    __getattr__ = __getitem__
