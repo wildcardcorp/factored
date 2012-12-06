@@ -20,9 +20,13 @@ class FakeMailer(object):
         self.messages.append(message)
 
 
+class FakeApp(object):
+    base_auth_url = '/auth'
+
+
 class BaseTest(unittest.TestCase):
 
-    def get_request(self, *args, **kwargs):
+    def get_request(self, path, *args, **kwargs):
         if 'environ' not in kwargs:
             kwargs['environ'] = {}
         if 'post' in kwargs:
@@ -32,7 +36,7 @@ class BaseTest(unittest.TestCase):
         kwargs['environ'].update({
             'SCRIPT_NAME': '',
             'REQUEST_METHOD': post and 'POST' or 'GET',
-            'PATH_INFO': '/',
+            'PATH_INFO': path,
             'SERVER_PROTOCOL': 'HTTP/1.1',
             'QUERY_STRING': '',
             'CONTENT_LENGTH': '0',
@@ -47,6 +51,7 @@ class BaseTest(unittest.TestCase):
             'wsgi.multithread': True,
             'wsgi.version': (1, 0),
             'wsgi.run_once': False})
+        kwargs.update({'path': path})
         req = testing.DummyRequest(*args, **kwargs)
         req.registry['settings'] = {
             'email_auth_settings': {
@@ -61,6 +66,7 @@ class BaseTest(unittest.TestCase):
             'auth_remember_timeout': 86400
         }
         req.registry['formtext'] = {}
+        req.registry['app'] = FakeApp()
         req.registry['factored.template.customizations'] = {}
         req.environ['auth'] = AuthTktAuthenticator(
             AuthTktAuthenticationPolicy('SECRET', cookie_name='test'),
@@ -92,11 +98,12 @@ class TestGoogleAuth(BaseTest):
                 secret=generate_random_google_code())
             DBSession.add(self.user)
 
+    def get_request(self, *args, **kwargs):
+        return super(TestGoogleAuth, self).get_request('/auth/ga', *args, **kwargs)
+
     def _makeOne(self, request):
         from factored.views import AuthView
-        from factored.plugins import GoogleAuthPlugin
-        plugin = GoogleAuthPlugin(request)
-        return AuthView(request, plugin)
+        return AuthView(request)
 
     def test_blank_form(self):
         request = self.get_request()
@@ -169,9 +176,10 @@ class TestEmailAuth(BaseTest):
 
     def _makeOne(self, request):
         from factored.views import AuthView
-        from factored.plugins import EmailAuthPlugin
-        plugin = EmailAuthPlugin(request)
-        return AuthView(request, plugin)
+        return AuthView(request)
+
+    def get_request(self, *args, **kwargs):
+        return super(TestEmailAuth, self).get_request('/auth/em', *args, **kwargs)
 
     def test_blank_form(self):
         request = self.get_request()
