@@ -123,6 +123,14 @@ class BasePlugin(object):
     def send_code_reminder(self, user):
         pass
 
+    @property
+    def settings(self):
+        name = '%s_settings' % self.path
+        if name in self.req.registry['settings']:
+            return self.req.registry['settings'][name]
+        else:
+            return {}
+
 
 class GoogleAuthPlugin(BasePlugin):
     name = 'Google Auth'
@@ -204,7 +212,6 @@ class EmailAuthPlugin(BasePlugin):
 
     def __init__(self, req):
         super(EmailAuthPlugin, self).__init__(req)
-        self.message_settings = req.registry['settings']['%s_settings' % self.path]
 
     def user_form_submitted_successfully(self, user):
         username = self.uform.data['username']
@@ -212,10 +219,14 @@ class EmailAuthPlugin(BasePlugin):
         user.generated_code = make_random_code(12)
         user.generated_code_time_stamp = datetime.utcnow()
 
-        message = self.message_settings.copy()
-        message['recipients'] = [username]
-        message['body'] = message['body'].replace('{code}',
-            user.generated_code)
+        settings = self.settings
+        message = {
+            'recipients': [username],
+            'body': settings['body'].replace('{code}',
+                user.generated_code),
+            'subject': settings['subject'],
+            'sender': settings['sender']
+        }
         mailer.send(Message(**message))
 
     def check_code(self, user):

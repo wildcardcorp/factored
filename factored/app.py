@@ -94,7 +94,7 @@ class Authenticator(object):
         from factored.views import AuthView
         for plugin in getFactoredPlugins():
             setattr(self, '%s_settings' % plugin.path,
-                get_settings(settings, '%s.' % plugin.path))
+                nested_settings(get_settings(settings, '%s.' % plugin.path)))
             config.add_route(plugin.name,
                 os.path.join(self.base_auth_url, plugin.path))
             config.add_view(AuthView, route_name=plugin.name,
@@ -130,8 +130,6 @@ class Authenticator(object):
     def __call__(self, environ, start_response):
         auth = AuthTktAuthenticator(self.auth_tkt_policy, environ)
         environ['auth'] = auth
-        if environ['PATH_INFO'] == '/auth':
-            pass
         if auth.authenticate():
             return self.app(environ, start_response)
         else:
