@@ -11,6 +11,7 @@ from factored.utils import create_user
 from factored.utils import get_barcode_image
 from pyramid.util import strings_differ
 from copy import deepcopy as copy
+import os
 
 _auth_plugins = []
 
@@ -43,6 +44,13 @@ def getFactoredPlugin(name):
         if plugin.name == name:
             return plugin
 
+
+def getPluginForRequest(req):
+    app = req.registry['app']
+    for plugin in getFactoredPlugins():
+        pluginpath = os.path.join(app.base_auth_url, plugin.path)
+        if pluginpath == req.path:
+            return plugin(req)
 
 class UsernameSchema(BaseSchema):
     username = validators.MinLength(3, not_empty=True)

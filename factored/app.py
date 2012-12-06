@@ -82,6 +82,7 @@ class Authenticator(object):
         config.registry['settings'] = self.__dict__
         config.registry['formtext'] = nested_settings(
             get_settings(settings, 'formtext.'))
+        config.registry['app'] = self
 
         config.scan()
         self.pyramid = config.make_wsgi_app()
@@ -90,13 +91,9 @@ class Authenticator(object):
         from factored.plugins import getFactoredPlugins
         from factored.views import AuthView
         for plugin in getFactoredPlugins():
-            def view(req):
-                plugininst = plugin(req)
-                req['selected-plugin'] = plugininst
-                return AuthView(req, plugininst)()
             config.add_route(plugin.name,
                 os.path.join(self.base_auth_url, plugin.path))
-            config.add_view(view, route_name=plugin.name,
+            config.add_view(AuthView, route_name=plugin.name,
                             renderer='templates/layout.pt')
 
     def setup_autouserfinder(self, settings):
