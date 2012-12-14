@@ -127,6 +127,8 @@ class Authenticator(object):
         self.allowcodereminder_settings = get_settings(settings,
             'allowcodereminder.')
 
+        self.hide_banner = settings.pop('hide_banner', 'false').strip().lower() == 'true'
+
     def __call__(self, environ, start_response):
         auth = AuthTktAuthenticator(self.auth_tkt_policy, environ)
         environ['auth'] = auth

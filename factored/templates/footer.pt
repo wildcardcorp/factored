@@ -1,4 +1,4 @@
-<footer>
+<footer tal:condition="python: not settings.get('hide_banner')">
 <p>
     <a href="http://www.wildcardcorp.com/?utm_source=sourcecode&utm_medium=factored&utm_campaign=directlink">
         <img src="${static_path}/poweredby_wildcard.png" />

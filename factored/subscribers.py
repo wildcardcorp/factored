@@ -22,4 +22,6 @@ def add_globals(event):
         context['content_renderer'] = 'templates/auth-chooser.pt'
     if 'allow_code_reminder' not in context and hasattr(view, 'allow_code_reminder'):
         context['allow_code_reminder'] = view.allow_code_reminder
+    if 'settings' not in context:
+        context['settings'] = req.registry['settings']
     return context
