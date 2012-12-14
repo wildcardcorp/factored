@@ -22,6 +22,8 @@ def add_globals(event):
         context['content_renderer'] = 'templates/auth-chooser.pt'
     if 'allow_code_reminder' not in context and hasattr(view, 'allow_code_reminder'):
         context['allow_code_reminder'] = view.allow_code_reminder
-    if 'settings' not in context:
-        context['settings'] = req.registry['settings']
+    # update app settings as template globals. Only missing ones.
+    for key, value in req.registry['settings'].items():
+        if key not in context:
+            context[key] = value
     return context
