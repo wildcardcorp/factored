@@ -100,7 +100,7 @@ class AuthView(object):
         if not referrer:
             referrer = self.req.path_url
         # strip off auth url
-        parts = self.req.environ['PATH_INFO'].split('/')
+        parts = self.req.environ['PATH_INFO'].rsplit('/')
         referrer = referrer.rstrip('/')
         if parts[-1] == self.plugin.path and referrer.endswith(self.plugin.path):
             referrer = referrer[:-len(self.plugin.path)]
