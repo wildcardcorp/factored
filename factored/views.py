@@ -97,6 +97,17 @@ class AuthView(object):
     def update_referrer(self):
         referrer = self.cform.data.get('referrer',
             self.uform.data.get('referrer', self.req.params.get('referrer', '')))
+        if not referrer:
+            referrer = self.req.path_url
+        # strip off auth url
+        parts = self.req.environ['PATH_INFO'].split('/')
+        referrer = referrer.rstrip('/')
+        if parts[-1] == self.plugin.path and referrer.endswith(self.plugin.path):
+            referrer = referrer[:-len(self.plugin.path)]
+            parts.remove(self.plugin.path)
+        referrer = referrer.rstrip('/')
+        if referrer.endswith(parts[-1]):
+            referrer = referrer[:-len(parts[-1])]
         self.uform.data.update({'referrer': referrer})
         self.cform.data.update({'referrer': referrer})
 
