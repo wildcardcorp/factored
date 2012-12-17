@@ -55,7 +55,13 @@ class Authenticator(object):
 
         # db configuration
         engine = engine_from_config(settings, 'sqlalchemy.')
-        DBSession.configure(bind=engine)
+        session = settings.pop('db_session', None)
+        if session:
+            session.configure(bind=engine)
+            self.db_session = session
+        else:
+            DBSession.configure(bind=engine)
+            self.db_session = DBSession
 
         self.setup_autouserfinder(settings)
 

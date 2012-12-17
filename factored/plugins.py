@@ -1,5 +1,5 @@
 import time
-from factored.models import DBSession, User
+from factored.models import User
 from pyramid_simpleform import Form
 from formencode import Schema, validators
 from pyramid_mailer.message import Message
@@ -97,17 +97,18 @@ class BasePlugin(object):
 
     def __init__(self, req):
         self.req = req
+        self.db_session = req.registry['settings']['db_session']
         self.uform = Form(req, schema=self.username_schema)
         self.cform = Form(req, schema=self.code_schema)
         self.formtext = nested_update(copy(self._formtext), self._formtext_overrides)
 
     def get_user(self, username):
-        user = DBSession.query(User).filter_by(username=username).first()
+        user = self.db_session.query(User).filter_by(username=username).first()
         if user is None:
             if 'userfinder' in self.req.registry['settings']:
                 finder = self.req.registry['settings']['userfinder']
                 if finder(username):
-                    return create_user(username)
+                    return create_user(username, session=self.db_session)
         return user
 
     def check_code(self, user):

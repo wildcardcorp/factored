@@ -4,7 +4,12 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 from zope.sqlalchemy import ZopeTransactionExtension
 
-DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
+
+ZTE = ZopeTransactionExtension()
+def createSession(no_exts=False):
+    return scoped_session(sessionmaker(extension=[ZTE]))
+
+DBSession = createSession()
 Base = declarative_base()
 
 
