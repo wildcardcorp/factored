@@ -6,7 +6,7 @@ from zope.sqlalchemy import ZopeTransactionExtension
 
 
 ZTE = ZopeTransactionExtension()
-def createSession(no_exts=False):
+def createSession():
     return scoped_session(sessionmaker(extension=[ZTE]))
 
 DBSession = createSession()
