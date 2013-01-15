@@ -53,11 +53,11 @@ class SMFilter(object):
 
         try:
             result = self.application(environ, start_response)
+            sm.commit()
         except:
             sm.rollback()
             raise
             
-        sm.commit()
         sm.close()
         return result
 
