@@ -97,7 +97,7 @@ class BasePlugin(object):
 
     def __init__(self, req):
         self.req = req
-        self.db_session = req.registry['settings']['db_session']
+        self.db_session = req.sm[req.registry['settings']['db_session_id']]
         self.uform = Form(req, schema=self.username_schema)
         self.cform = Form(req, schema=self.code_schema)
         self.formtext = nested_update(copy(self._formtext), self._formtext_overrides)
@@ -163,7 +163,7 @@ class GoogleAuthPlugin(BasePlugin):
         message['body'] = message['body'].replace('{code}',
             get_barcode_image(username, user.secret,
                 self.req.registry['settings']['appname']))
-        mailer.send(Message(**message))
+        mailer.send_immediately(Message(**message))
 
     def check_code(self, user):
         tm = int(time.time() / 30)
@@ -228,7 +228,7 @@ class EmailAuthPlugin(BasePlugin):
             'subject': settings['subject'],
             'sender': settings['sender']
         }
-        mailer.send(Message(**message))
+        mailer.send_immediately(Message(**message))
 
     def check_code(self, user):
         window = self.req.registry['settings']['email_auth_window']

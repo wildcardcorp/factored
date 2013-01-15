@@ -86,7 +86,7 @@ def get_google_auth_code(secretkey, tm=None):
 def create_user(username, session=None):
     from factored.models import DBSession, User
     if session is None:
-        session = DBSession
+        session = DBSession()
     secret = generate_random_google_code()
     user = User(username=username, secret=secret)
     session.add(user)

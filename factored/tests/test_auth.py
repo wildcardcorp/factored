@@ -1,5 +1,4 @@
 import unittest
-import transaction
 
 from pyramid import testing
 
@@ -75,7 +74,7 @@ class BaseTest(unittest.TestCase):
         return req
 
     def tearDown(self):
-        DBSession.remove()
+        self.session.remove()
         testing.tearDown()
 
     def setUp(self):
@@ -84,6 +83,7 @@ class BaseTest(unittest.TestCase):
         engine = create_engine('sqlite://')
         from factored.models import Base
         DBSession.configure(bind=engine)
+        self.session = DBSession()
         Base.metadata.create_all(engine)
         self.mailer = FakeMailer()
 
@@ -93,10 +93,9 @@ class TestGoogleAuth(BaseTest):
     def setUp(self):
         super(TestGoogleAuth, self).setUp()
         from factored.models import User
-        with transaction.manager:
-            self.user = User(username='foo',
-                secret=generate_random_google_code())
-            DBSession.add(self.user)
+        self.user = User(username='foo',
+            secret=generate_random_google_code())
+        self.session.add(self.user)
 
     def get_request(self, *args, **kwargs):
         return super(TestGoogleAuth, self).get_request('/auth/ga', *args, **kwargs)
@@ -144,7 +143,7 @@ class TestGoogleAuth(BaseTest):
     def test_submit_success_with_code(self):
         from factored.utils import get_google_auth_code
         from factored.models import User
-        user = DBSession.query(User).filter_by(username='foo').first()
+        user = self.session.query(User).filter_by(username='foo').first()
         request = self.get_request(
             post={'username': 'foo', 'submit': 'Authenticate',
                   'code': get_google_auth_code(user.secret)})
@@ -154,7 +153,7 @@ class TestGoogleAuth(BaseTest):
     def test_submit_success_with_code_check_headers(self):
         from factored.utils import get_google_auth_code
         from factored.models import User
-        user = DBSession.query(User).filter_by(username='foo').first()
+        user = self.session.query(User).filter_by(username='foo').first()
         request = self.get_request(
             post={'username': 'foo', 'submit': 'Authenticate',
                   'code': get_google_auth_code(user.secret)})
@@ -169,10 +168,10 @@ class TestEmailAuth(BaseTest):
     def setUp(self):
         super(TestEmailAuth, self).setUp()
         from factored.models import User
-        with transaction.manager:
-            self.user = User(username='foo@bar.com',
-                secret=generate_random_google_code())
-            DBSession.add(self.user)
+        self.user = User(username='foo@bar.com',
+            secret=generate_random_google_code())
+        self.session.add(self.user)
+        self.session.commit()
 
     def _makeOne(self, request):
         from factored.views import AuthView
@@ -220,7 +219,7 @@ class TestEmailAuth(BaseTest):
         form = renderer.form
         self.assertTrue(len(form.errors) == 0)
         self.assertTrue(len(self.mailer.messages) == 1)
-        user = DBSession.query(User).filter_by(username='foo@bar.com').first()
+        user = self.session.query(User).filter_by(username='foo@bar.com').first()
         self.assertTrue(user.generated_code in self.mailer.messages[0].body)
 
     def test_auth_correct(self):
@@ -230,7 +229,7 @@ class TestEmailAuth(BaseTest):
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
         self._makeOne(request)()
-        user = DBSession.query(User).filter_by(username='foo@bar.com').first()
+        user = self.session.query(User).filter_by(username='foo@bar.com').first()
 
         # then, auth with code
         request = self.get_request(
@@ -247,7 +246,7 @@ class TestEmailAuth(BaseTest):
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
         self._makeOne(request)()
-        user = DBSession.query(User).filter_by(username='foo@bar.com').first()
+        user = self.session.query(User).filter_by(username='foo@bar.com').first()
 
         # then, auth with code
         request = self.get_request(
@@ -266,7 +265,7 @@ class TestEmailAuth(BaseTest):
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
         self._makeOne(request)()
-        user = DBSession.query(User).filter_by(username='foo@bar.com').first()
+        user = self.session.query(User).filter_by(username='foo@bar.com').first()
 
         # then, auth with code
         request = self.get_request(
@@ -321,7 +320,7 @@ class TestEmailAuth(BaseTest):
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
         self._makeOne(request)()
-        user = DBSession.query(User).filter_by(username='foo@bar.com').first()
+        user = self.session.query(User).filter_by(username='foo@bar.com').first()
 
         # set time back
         user.generated_code_time_stamp = \

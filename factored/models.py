@@ -1,15 +1,11 @@
 from sqlalchemy import Column, Integer, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.orm import sessionmaker
+from factored.sm import registerSession
 
-from zope.sqlalchemy import ZopeTransactionExtension
 
-
-ZTE = ZopeTransactionExtension()
-def createSession():
-    return scoped_session(sessionmaker(extension=[ZTE]))
-
-DBSession = createSession()
+DBSession = sessionmaker()
+registerSession('f', DBSession)
 Base = declarative_base()
 
 

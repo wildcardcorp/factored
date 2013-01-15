@@ -28,10 +28,7 @@ setup(name='factored',
           'WSGIProxy',
           'pyramid',
           'SQLAlchemy<=0.7.9',
-          'transaction',
-          'pyramid_tm',
           'pyramid_debugtoolbar',
-          'zope.sqlalchemy',
           'pyramid_simpleform',
           'pyramid_mailer',
           'argparse'
@@ -43,6 +40,9 @@ setup(name='factored',
 
       [paste.filter_app_factory]
       main = factored.app:Authenticator
+
+      [paste.filter_app_factory]
+      sm = factored.sm:make_sm
 
       [console_scripts]
       initializedb = factored.scripts.initializedb:main

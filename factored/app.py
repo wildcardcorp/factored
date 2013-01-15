@@ -9,6 +9,7 @@ import os
 from pyramid_mailer.mailer import Mailer
 from factored import subscribers
 from factored.request import Request
+from factored.sm import SMFilter
 
 
 def _tolist(val):
@@ -55,13 +56,13 @@ class Authenticator(object):
 
         # db configuration
         engine = engine_from_config(settings, 'sqlalchemy.')
-        session = settings.pop('db_session', None)
-        if session:
-            session.configure(bind=engine)
-            self.db_session = session
-        else:
+        configure_db = settings.pop('configure_db', 'true').lower() == 'true'
+
+        if configure_db:
             DBSession.configure(bind=engine)
-            self.db_session = DBSession
+            self.db_session_id = 'f'
+        else:
+            self.db_session_id = settings.pop('db_session_id')
 
         self.setup_autouserfinder(settings)
 
@@ -136,12 +137,14 @@ class Authenticator(object):
         self.hide_banner = settings.pop('hide_banner', 'false').strip().lower() == 'true'
 
     def __call__(self, environ, start_response):
-        auth = AuthTktAuthenticator(self.auth_tkt_policy, environ)
-        environ['auth'] = auth
-        if auth.authenticate():
-            return self.app(environ, start_response)
-        else:
-            return self.pyramid(environ, start_response)
+        def wrapped_app(environ2, start_response2):
+            auth = AuthTktAuthenticator(self.auth_tkt_policy, environ2)
+            environ2['auth'] = auth
+            if auth.authenticate():
+                return self.app(environ2, start_response2)
+            else:
+                return self.pyramid(environ2, start_response2)
+        return SMFilter(wrapped_app)(environ, start_response)
 
 
 class SimpleProxy(object):

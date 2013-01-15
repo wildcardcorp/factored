@@ -1,4 +1,3 @@
-import transaction
 import argparse
 
 from sqlalchemy import engine_from_config
@@ -24,12 +23,14 @@ def add():
         settings = get_appsettings(config_uri)
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
-        with transaction.manager:
-            username = arguments.username
-            user = create_user(username)
-            print 'barcode url:', get_barcode_image(username, user.secret,
-                settings['appname'])
-            print 'secret:', user.secret
+        session = DBSession()
+        username = arguments.username
+        user = create_user(username, session)
+        print 'barcode url:', get_barcode_image(username, user.secret,
+            settings['appname'])
+        print 'secret:', user.secret
+        session.commit()
+        session.close()
 
 removeparser = argparse.ArgumentParser(description='Remove user')
 removeparser.add_argument('config', help='configuration file')
@@ -46,13 +47,15 @@ def remove():
         settings = get_appsettings(config_uri)
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
-        with transaction.manager:
-            user = DBSession.query(User).filter_by(
-                username=arguments.username).all()
-            if len(user) > 0:
-                DBSession.delete(user[0])
-            else:
-                print '"%s" user not found' % arguments.username
+        session = DBSession()
+        user = session.query(User).filter_by(
+            username=arguments.username).all()
+        if len(user) > 0:
+            session.delete(user[0])
+        else:
+            print '"%s" user not found' % arguments.username
+        session.commit()
+        session.close()
 
 listparser = argparse.ArgumentParser(description='Remove user')
 listparser.add_argument('config', help='configuration file')
@@ -68,9 +71,9 @@ def listusers():
         settings = get_appsettings(config_uri)
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
-        with transaction.manager:
-            for user in DBSession.query(User).all():
-                print user.username
+        session = DBSession()
+        for user in session.query(User).all():
+            print user.username
 
 
 listuserparser = argparse.ArgumentParser(description='List user info')
@@ -88,15 +91,15 @@ def listuserinfo():
         settings = get_appsettings(config_uri)
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
-        with transaction.manager:
-            users = DBSession.query(User).filter_by(
-                username=arguments.username).all()
-            if len(users) > 0:
-                user = users[0]
-                print 'username:%s, secret: %s' % (
-                    user.username, user.secret)
-                print 'bar code url:', get_barcode_image(user.username,
-                                                         user.secret,
-                                                         settings['appname'])
-            else:
-                print '"%s" user not found' % arguments.username
+        session = DBSession()
+        users = session.query(User).filter_by(
+            username=arguments.username).all()
+        if len(users) > 0:
+            user = users[0]
+            print 'username:%s, secret: %s' % (
+                user.username, user.secret)
+            print 'bar code url:', get_barcode_image(user.username,
+                                                     user.secret,
+                                                     settings['appname'])
+        else:
+            print '"%s" user not found' % arguments.username
