@@ -1,3 +1,4 @@
+from sqlalchemy.exc import InterfaceError
 
 key = 'SM'
 skey = 'SM.sessions'
@@ -35,7 +36,10 @@ class SM(object):
 
     def rollback(self):
         for session in self.sessions.values():
-            session.rollback()
+            try:
+                session.rollback()
+            except InterfaceError:
+                pass
 
     def close(self):
         for session in self.sessions.values():
@@ -57,8 +61,12 @@ class SMFilter(object):
         except:
             sm.rollback()
             raise
-            
+        
         sm.close()
+        if key in environ:
+            del environ[key]
+        if skey in environ:
+            del environ[skey]
         return result
 
 
