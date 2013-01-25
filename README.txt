@@ -54,6 +54,8 @@ auth_tkt.wild_domain
     An auth_tkt cookie will be generated for the wildcard domain.
 auth_tkt.cookie_domain
     To set the cookie on an additional different domain.
+auth_tkt.hashalg
+    Set to use a different hashing algorithm. Defaults to sha512
 auth_timeout
     The amount of time in seconds a normal authentication session is valid for.
 auth_remember_timeout

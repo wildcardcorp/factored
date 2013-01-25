@@ -9,7 +9,6 @@ _marker = object()
 class CookieHelper(AuthTktCookieHelper):
     def __init__(self, *args, **kwargs):
         self.cookie_domain = kwargs.pop('cookie_domain', False)
-        kwargs['hashalg'] = 'sha512'
         super(CookieHelper, self).__init__(*args, **kwargs)
         
 
@@ -38,7 +37,7 @@ class AuthenticationPolicy(AuthTktAuthenticationPolicy):
     def __init__(self, secret, callback=None, cookie_name='auth_tkt',
                  secure=False, include_ip=False, timeout=None, reissue_time=None,
                  max_age=None, path="/", http_only=False, wild_domain=True,
-                 cookie_domain=False, debug=False):
+                 cookie_domain=False, debug=False, hashalg='sha512'):
         self.cookie = CookieHelper(
             secret,
             cookie_name=cookie_name,
@@ -50,7 +49,8 @@ class AuthenticationPolicy(AuthTktAuthenticationPolicy):
             http_only=http_only,
             path=path,
             wild_domain=wild_domain,
-            cookie_domain=cookie_domain)
+            cookie_domain=cookie_domain,
+            hashalg=hashalg)
         self.callback = callback
         self.debug = debug
 
