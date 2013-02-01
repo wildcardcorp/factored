@@ -1,18 +1,18 @@
 Changelog
 =========
 
-2.0 (unreleased)
-----------------
+2.0rc1 (2013-01-31)
+-------------------
+
+- more robust multi-use environment with database connections
+
+- support more algorythms for auth ticket
 
 - refactor so it's more modular
 
 - be able to easily customize all templates
 
 - be able to customize text
-
-
-1.2a1 (unreleased)
-------------------
 
 - pull out auth_tkt module of paste so we can customize a bit
 

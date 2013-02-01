@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '2.0a1'
+version = '2.0rc1'
 
 setup(name='factored',
       version=version,
@@ -40,8 +40,6 @@ setup(name='factored',
 
       [paste.filter_app_factory]
       main = factored.app:Authenticator
-
-      [paste.filter_app_factory]
       sm = factored.sm:make_sm
 
       [console_scripts]
