@@ -134,7 +134,8 @@ class Authenticator(object):
         self.allowcodereminder_settings = get_settings(settings,
             'allowcodereminder.')
 
-        self.hide_banner = settings.pop('hide_banner', 'false').strip().lower() == 'true'
+        settings['hide_banner'] = settings.get('hide_banner', 'false').strip().lower() == 'true'
+        self.hide_banner = settings['hide_banner']
 
     def __call__(self, environ, start_response):
         def wrapped_app(environ2, start_response2):
