@@ -20,7 +20,10 @@ def add():
     else:
         config_uri = arguments.config
         setup_logging(config_uri)
-        settings = get_appsettings(config_uri)
+        try:
+            settings = get_appsettings(config_uri, 'factored')
+        except LookupError:
+            settings = get_appsettings(config_uri, 'main')
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
         session = DBSession()
@@ -44,7 +47,10 @@ def remove():
     else:
         config_uri = arguments.config
         setup_logging(config_uri)
-        settings = get_appsettings(config_uri)
+        try:
+            settings = get_appsettings(config_uri, 'factored')
+        except LookupError:
+            settings = get_appsettings(config_uri, 'main')
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
         session = DBSession()
@@ -68,7 +74,10 @@ def listusers():
     else:
         config_uri = arguments.config
         setup_logging(config_uri)
-        settings = get_appsettings(config_uri)
+        try:
+            settings = get_appsettings(config_uri, 'factored')
+        except LookupError:
+            settings = get_appsettings(config_uri, 'main')
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
         session = DBSession()
@@ -88,7 +97,10 @@ def listuserinfo():
     else:
         config_uri = arguments.config
         setup_logging(config_uri)
-        settings = get_appsettings(config_uri)
+        try:
+            settings = get_appsettings(config_uri, 'factored')
+        except LookupError:
+            settings = get_appsettings(config_uri, 'main')
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
         session = DBSession()
