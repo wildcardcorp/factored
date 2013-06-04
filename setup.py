@@ -6,7 +6,7 @@ setup(name='factored',
       version=version,
       description="A WSGI app that allows you to add another factor of "
                   "authentication to any application server.",
-      long_description=open("README.txt").read() + "\n" +
+      long_description=open("README.rst").read() + "\n" +
                        open("CHANGES.txt").read(),
       classifiers=[
         'Topic :: Internet :: WWW/HTTP :: WSGI',
