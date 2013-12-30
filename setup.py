@@ -5,7 +5,7 @@ version = '2.1'
 requires = [
     'PasteDeploy',
     'PasteScript',
-    'webob',
+    'WebOb',
     'WSGIProxy',
     'pyramid',
     'SQLAlchemy<=0.7.9',
@@ -34,10 +34,10 @@ setup(name='factored',
       include_package_data=True,
       zip_safe=False,
       install_requires=requires,
-      tests_require=requires + ['webtest'],
+      tests_require=requires + ['WebTest'],
       extras_require={
           'test': [
-              'webtest',
+              'WebTest',
               'pyramid_debugtoolbar'
           ]
       },

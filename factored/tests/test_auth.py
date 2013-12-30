@@ -9,6 +9,7 @@ from datetime import timedelta
 from factored.auth_tkt import AuthTktAuthenticator
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from webtest import TestApp
+from factored.sm import SM
 
 
 class FakeMailer(object):
@@ -227,8 +228,6 @@ class TestEmailAuth(BaseTest):
         form = renderer.form
         self.assertTrue(len(form.errors) == 0)
         self.assertTrue(len(self.mailer.messages) == 1)
-
-        import pdb; pdb.set_trace()
         self.assertTrue(user.generated_code in self.mailer.messages[0].body)
 
     def test_auth_correct(self):
