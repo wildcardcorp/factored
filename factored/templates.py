@@ -10,8 +10,8 @@ def registerTemplateCustomizations(config, _dir, package):
         registry[TEMPLATE_CUSTOMIZATIONS] = {}
     path = os.path.join(package_path(package), _dir)
     for fi in os.listdir(path):
-        registry[TEMPLATE_CUSTOMIZATIONS][fi] = (package,
-            os.path.join(_dir, fi))
+        registry[TEMPLATE_CUSTOMIZATIONS][fi] = (
+            package, os.path.join(_dir, fi))
 
 
 class TemplateRendererFactory(object):

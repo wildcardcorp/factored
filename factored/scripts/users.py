@@ -30,7 +30,7 @@ def add():
         username = arguments.username
         user = create_user(username, session)
         print 'barcode url:', get_barcode_image(username, user.secret,
-            settings['appname'])
+                                                settings['appname'])
         print 'secret:', user.secret
         session.commit()
         session.close()

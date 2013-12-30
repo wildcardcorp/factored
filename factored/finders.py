@@ -34,8 +34,8 @@ class SQLUserFinder(object):
         return create_engine(self.connection_string)
 
     def __call__(self, username):
-        select = 'select %s from %s where %s=?' % (self.email_field,
-            self.table_name, self.email_field)
+        select = 'select %s from %s where %s=?' % (
+            self.email_field, self.table_name, self.email_field)
         engine = self.engine
         if engine.driver == 'mysqldb':
             select = select.replace('?', '%s')

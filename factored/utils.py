@@ -50,8 +50,9 @@ def generate_random_google_code(length=10):
 
 
 def make_random_code(length=255):
-    return hashlib.sha1(hashlib.sha1(str(get_random_string(length))).
-        hexdigest()[:5] + str(datetime.now().microsecond)).hexdigest()[:length]
+    prehash = hashlib.sha1(str(get_random_string(length))).hexdigest()[:5]
+    return hashlib.sha1(
+        prehash + str(datetime.now().microsecond)).hexdigest()[:length]
 
 
 def get_barcode_image(username, secretkey, appname):
@@ -114,3 +115,36 @@ class CombinedDict(object):
         raise KeyError
 
     __getattr__ = __getitem__
+
+
+class FakeMailer(object):
+
+    def __init__(self, req):
+        self.req = req
+        self.messages = []
+
+    def send_immediately(self, message):
+        self.messages.append(message)
+        print """To: %s
+From: %s
+Subject: %s
+Body: %s""" % (
+            ','.join(message.recipients),
+            message.sender,
+            message.subject,
+            message.body
+        )
+
+    send = send_immediately
+
+
+FAKE_MAILER_KEY = 'fakemailer'
+
+
+def get_mailer(req):
+    settings = req.registry.settings
+    if settings.get('mail.host', '') == 'debug':
+        if FAKE_MAILER_KEY not in req.environ:
+            req.environ[FAKE_MAILER_KEY] = FakeMailer(req)
+        return req.environ[FAKE_MAILER_KEY]
+    return req.registry['mailer']

@@ -38,8 +38,9 @@ class AuthView(object):
 
     @property
     def requesting_code_reminder(self):
-        return self.req.POST.get('submit', '') == self.formtext['button']['codereminder'] \
-                and self.plugin.allow_code_reminder
+        cm = self.formtext['button']['codereminder']
+        acm = self.plugin.allow_code_reminder
+        return self.req.POST.get('submit', '') == cm and acm
 
     def send_out_code_reminder(self):
         self.validate_submitted = True
@@ -52,7 +53,8 @@ class AuthView(object):
 
     @property
     def requesting_user_form(self):
-        return self.req.POST.get('submit', '') == self.formtext['button']['username']
+        return self.req.POST.get('submit', '') == \
+            self.formtext['button']['username']
 
     def submit_user_form(self):
         if self.uform.validate():
@@ -68,7 +70,8 @@ class AuthView(object):
 
     @property
     def requesting_authentication(self):
-        return self.req.POST.get('submit', '') == self.formtext['button']['authenticate']
+        return self.req.POST.get('submit', '') == \
+            self.formtext['button']['authenticate']
 
     def submit_authentication(self):
         self.validate_submitted = True
@@ -91,18 +94,21 @@ class AuthView(object):
                         referrer = '/'
                     raise HTTPFound(location=referrer, headers=headers)
                 else:
-                    self.cform.errors['code'] = self.formtext['error']['invalid_code']
+                    self.cform.errors['code'] = \
+                        self.formtext['error']['invalid_code']
                     self.cform.data['code'] = u''
 
     def update_referrer(self):
-        referrer = self.cform.data.get('referrer',
-            self.uform.data.get('referrer', self.req.params.get('referrer', '')))
+        referrer = self.uform.data.get('referrer',
+                                       self.req.params.get('referrer', ''))
+        referrer = self.cform.data.get('referrer', referrer)
         if not referrer:
             referrer = self.req.path_url
         # strip off auth url
         parts = self.req.environ['PATH_INFO'].rsplit('/')
         referrer = referrer.rstrip('/')
-        if parts[-1] == self.plugin.path and referrer.endswith(self.plugin.path):
+        if parts[-1] == self.plugin.path and \
+                referrer.endswith(self.plugin.path):
             referrer = referrer[:-len(self.plugin.path)]
             parts.remove(self.plugin.path)
         referrer = referrer.rstrip('/')
@@ -121,8 +127,10 @@ class AuthView(object):
             elif self.requesting_authentication:
                 self.submit_authentication()
         self.update_referrer()
-        return dict(uform=FormRenderer(self.uform),
-            cform=FormRenderer(self.cform), send_submitted=self.send_submitted,
+        return dict(
+            uform=FormRenderer(self.uform),
+            cform=FormRenderer(self.cform),
+            send_submitted=self.send_submitted,
             validate_submitted=self.validate_submitted,
             content_renderer=self.content_renderer,
             formtext=self.combined_formtext,

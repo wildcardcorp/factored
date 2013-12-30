@@ -9,6 +9,7 @@ from datetime import timedelta
 from factored.utils import get_google_auth_code
 from factored.utils import create_user
 from factored.utils import get_barcode_image
+from factored.utils import get_mailer
 from pyramid.util import strings_differ
 from copy import deepcopy as copy
 import os
@@ -51,6 +52,7 @@ def getPluginForRequest(req):
         pluginpath = os.path.join(app.base_auth_url, plugin.path)
         if pluginpath == req.path:
             return plugin(req)
+
 
 class UsernameSchema(BaseSchema):
     username = validators.MinLength(3, not_empty=True)
@@ -100,7 +102,8 @@ class BasePlugin(object):
         self.db_session = req.sm[req.registry['settings']['db_session_id']]
         self.uform = Form(req, schema=self.username_schema)
         self.cform = Form(req, schema=self.code_schema)
-        self.formtext = nested_update(copy(self._formtext), self._formtext_overrides)
+        self.formtext = nested_update(copy(self._formtext),
+                                      self._formtext_overrides)
 
     def get_user(self, username):
         user = self.db_session.query(User).filter_by(username=username).first()
@@ -154,15 +157,15 @@ class GoogleAuthPlugin(BasePlugin):
         return self.req.registry['settings']['allowcodereminder']
 
     def send_code_reminder(self, user):
-        mailer = self.req.registry['mailer']
+        mailer = get_mailer(self.req)
         code_reminder_settings = \
             self.req.registry['settings']['allowcodereminder_settings'].copy()
         username = user.username
         message = code_reminder_settings.copy()
         message['recipients'] = [username]
-        message['body'] = message['body'].replace('{code}',
-            get_barcode_image(username, user.secret,
-                self.req.registry['settings']['appname']))
+        appname = self.req.registry['settings']['appname']
+        message['body'] = message['body'].replace(
+            '{code}', get_barcode_image(username, user.secret, appname))
         mailer.send_immediately(Message(**message))
 
     def check_code(self, user):
@@ -200,7 +203,7 @@ class EmailAuthPlugin(BasePlugin):
         'legend': u'Authenticate through your email...',
         'username': {
             'label': u'Email',
-            'desc': u'Email you signed up with. Should be ' + \
+            'desc': u'Email you signed up with. Should be '
                     u'the same as the username.'
             },
         'code': {
@@ -216,15 +219,14 @@ class EmailAuthPlugin(BasePlugin):
 
     def user_form_submitted_successfully(self, user):
         username = self.uform.data['username']
-        mailer = self.req.registry['mailer']
+        mailer = get_mailer(self.req)
         user.generated_code = make_random_code(12)
         user.generated_code_time_stamp = datetime.utcnow()
 
         settings = self.settings
         message = {
             'recipients': [username],
-            'body': settings['body'].replace('{code}',
-                user.generated_code),
+            'body': settings['body'].replace('{code}', user.generated_code),
             'subject': settings['subject'],
             'sender': settings['sender']
         }
@@ -233,8 +235,9 @@ class EmailAuthPlugin(BasePlugin):
     def check_code(self, user):
         window = self.req.registry['settings']['email_auth_window']
         now = datetime.utcnow()
-        return (not strings_differ(self.cform.data['code'], user.generated_code)) and \
-                (now < (user.generated_code_time_stamp + timedelta(seconds=window)))
+        return (not strings_differ(self.cform.data['code'],
+                user.generated_code)) and (now < (
+            user.generated_code_time_stamp + timedelta(seconds=window)))
 
 
 addFactoredPlugin(EmailAuthPlugin)

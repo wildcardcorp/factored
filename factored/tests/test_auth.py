@@ -74,7 +74,7 @@ class BaseTest(unittest.TestCase):
         return req
 
     def tearDown(self):
-        self.session.remove()
+        self.session.close()
         testing.tearDown()
 
     def setUp(self):
@@ -93,12 +93,12 @@ class TestGoogleAuth(BaseTest):
     def setUp(self):
         super(TestGoogleAuth, self).setUp()
         from factored.models import User
-        self.user = User(username='foo',
-            secret=generate_random_google_code())
+        self.user = User(username='foo', secret=generate_random_google_code())
         self.session.add(self.user)
 
     def get_request(self, *args, **kwargs):
-        return super(TestGoogleAuth, self).get_request('/auth/ga', *args, **kwargs)
+        return super(TestGoogleAuth, self).get_request(
+            '/auth/ga', *args, **kwargs)
 
     def _makeOne(self, request):
         from factored.views import AuthView
@@ -168,8 +168,8 @@ class TestEmailAuth(BaseTest):
     def setUp(self):
         super(TestEmailAuth, self).setUp()
         from factored.models import User
-        self.user = User(username='foo@bar.com',
-            secret=generate_random_google_code())
+        self.user = User(
+            username='foo@bar.com', secret=generate_random_google_code())
         self.session.add(self.user)
         self.session.commit()
 
@@ -178,7 +178,8 @@ class TestEmailAuth(BaseTest):
         return AuthView(request)
 
     def get_request(self, *args, **kwargs):
-        return super(TestEmailAuth, self).get_request('/auth/em', *args, **kwargs)
+        return super(TestEmailAuth, self).get_request(
+            '/auth/em', *args, **kwargs)
 
     def test_blank_form(self):
         request = self.get_request()
@@ -219,7 +220,8 @@ class TestEmailAuth(BaseTest):
         form = renderer.form
         self.assertTrue(len(form.errors) == 0)
         self.assertTrue(len(self.mailer.messages) == 1)
-        user = self.session.query(User).filter_by(username='foo@bar.com').first()
+        user = self.session.query(User).filter_by(
+            username='foo@bar.com').first()
         self.assertTrue(user.generated_code in self.mailer.messages[0].body)
 
     def test_auth_correct(self):
@@ -229,7 +231,8 @@ class TestEmailAuth(BaseTest):
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
         self._makeOne(request)()
-        user = self.session.query(User).filter_by(username='foo@bar.com').first()
+        user = self.session.query(User).filter_by(
+            username='foo@bar.com').first()
 
         # then, auth with code
         request = self.get_request(
@@ -246,7 +249,8 @@ class TestEmailAuth(BaseTest):
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
         self._makeOne(request)()
-        user = self.session.query(User).filter_by(username='foo@bar.com').first()
+        user = self.session.query(User).filter_by(
+            username='foo@bar.com').first()
 
         # then, auth with code
         request = self.get_request(
@@ -265,7 +269,8 @@ class TestEmailAuth(BaseTest):
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
         self._makeOne(request)()
-        user = self.session.query(User).filter_by(username='foo@bar.com').first()
+        user = self.session.query(User).filter_by(
+            username='foo@bar.com').first()
 
         # then, auth with code
         request = self.get_request(
@@ -320,7 +325,8 @@ class TestEmailAuth(BaseTest):
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
         self._makeOne(request)()
-        user = self.session.query(User).filter_by(username='foo@bar.com').first()
+        user = self.session.query(User).filter_by(
+            username='foo@bar.com').first()
 
         # set time back
         user.generated_code_time_stamp = \

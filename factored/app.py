@@ -8,6 +8,7 @@ from factored import TEMPLATE_CUSTOMIZATIONS
 import os
 from pyramid_mailer.mailer import Mailer
 from factored import subscribers
+subscribers  # pyflakes
 from factored.request import Request
 from factored.sm import SMFilter
 
@@ -74,7 +75,7 @@ class Authenticator(object):
         from factored.views import auth_chooser, notfound
         config.add_route('auth', self.base_auth_url)
         config.add_view(auth_chooser, route_name='auth',
-            renderer='templates/layout.pt')
+                        renderer='templates/layout.pt')
 
         # setup template customization registration
         if TEMPLATE_CUSTOMIZATIONS not in config.registry:
@@ -100,9 +101,11 @@ class Authenticator(object):
         from factored.plugins import getFactoredPlugins
         from factored.views import AuthView
         for plugin in getFactoredPlugins():
-            setattr(self, '%s_settings' % plugin.path,
+            setattr(
+                self, '%s_settings' % plugin.path,
                 nested_settings(get_settings(settings, '%s.' % plugin.path)))
-            config.add_route(plugin.name,
+            config.add_route(
+                plugin.name,
                 os.path.join(self.base_auth_url, plugin.path))
             config.add_view(AuthView, route_name=plugin.name,
                             renderer='templates/layout.pt')
@@ -112,8 +115,8 @@ class Authenticator(object):
         if finder_name:
             plugin = getUserFinderPlugin(finder_name)
             if plugin:
-                self.userfinder = plugin(**get_settings(settings,
-                    'autouserfinder.'))
+                self.userfinder = plugin(
+                    **get_settings(settings, 'autouserfinder.'))
             else:
                 raise Exception('User finder not found: %s', finder_name)
 
@@ -125,16 +128,18 @@ class Authenticator(object):
         self.base_auth_url = settings.pop('base_auth_url', '/auth')
         self.email_auth_window = int(settings.pop('email_auth_window', '120'))
         self.auth_timeout = int(settings.pop('auth_timeout', '7200'))
-        self.auth_remember_timeout = int(settings.pop('auth_remember_timeout', '86400'))
+        self.auth_remember_timeout = int(settings.pop(
+            'auth_remember_timeout', '86400'))
 
         auth_settings = normalize_settings(get_settings(settings, 'auth_tkt.'))
         self.auth_tkt_policy = AuthenticationPolicy(**auth_settings)
-        self.allowcodereminder = \
-            settings.pop('allowcodereminder', 'false').lower() == 'true' or False
-        self.allowcodereminder_settings = get_settings(settings,
-            'allowcodereminder.')
+        self.allowcodereminder = settings.pop(
+            'allowcodereminder', 'false').lower() == 'true' or False
+        self.allowcodereminder_settings = get_settings(
+            settings, 'allowcodereminder.')
 
-        settings['hide_banner'] = settings.get('hide_banner', 'false').strip().lower() == 'true'
+        settings['hide_banner'] = settings.get(
+            'hide_banner', 'false').strip().lower() == 'true'
         self.hide_banner = settings['hide_banner']
 
     def __call__(self, environ, start_response):

@@ -5,6 +5,7 @@ skey = 'SM.sessions'
 
 _registered_session_factories = {}
 
+
 def registerSession(name, Session):
     _registered_session_factories[name] = Session
 
@@ -14,7 +15,7 @@ def getSessionManager(environ):
 
 
 class SM(object):
-    
+
     def __init__(self, environ):
         self.environ = environ
         if skey not in environ:
@@ -49,7 +50,7 @@ class SM(object):
 class SMFilter(object):
     def __init__(self, application):
         self.application = application
-        
+
     def __call__(self, environ, start_response):
         if key not in environ:
             environ[key] = SM(environ)
@@ -61,7 +62,7 @@ class SMFilter(object):
         except:
             sm.rollback()
             raise
-        
+
         sm.close()
         if key in environ:
             del environ[key]
