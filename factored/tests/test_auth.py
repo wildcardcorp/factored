@@ -9,7 +9,7 @@ from datetime import timedelta
 from factored.auth_tkt import AuthTktAuthenticator
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from webtest import TestApp
-from factored.sm import SM
+from factored.app import Authenticator
 
 
 class FakeMailer(object):
@@ -23,61 +23,19 @@ class FakeMailer(object):
     send_immediately = send
 
 
+def test_application(environ, start_response):
+    body = 'foobar'
+    headers = [('Content-Type', 'text/html; charset=utf8'),
+               ('Content-Length', str(len(body)))]
+    start_response('200 Ok', headers)
+    return [body]
+
+
 class FakeApp(object):
     base_auth_url = '/auth'
 
 
 class BaseTest(unittest.TestCase):
-
-    def get_request(self, path, *args, **kwargs):
-        if 'environ' not in kwargs:
-            kwargs['environ'] = {}
-        if 'post' in kwargs:
-            post = True
-        else:
-            post = False
-        kwargs['environ'].update({
-            'SCRIPT_NAME': '',
-            'REQUEST_METHOD': post and 'POST' or 'GET',
-            'PATH_INFO': path,
-            'SERVER_PROTOCOL': 'HTTP/1.1',
-            'QUERY_STRING': '',
-            'CONTENT_LENGTH': '0',
-            'HTTP_ACCEPT_CHARSET': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-            'HTTP_USER_AGENT': 'TEST',
-            'HTTP_CONNECTION': 'keep-alive',
-            'SERVER_NAME': '127.0.0.1',
-            'REMOTE_ADDR': '127.0.0.1',
-            'wsgi.url_scheme': 'http',
-            'SERVER_PORT': '8000',
-            'HTTP_HOST': '127.0.0.1:8000',
-            'wsgi.multithread': True,
-            'wsgi.version': (1, 0),
-            'wsgi.run_once': False})
-        kwargs.update({'path': path})
-        req = testing.DummyRequest(*args, **kwargs)
-        req.registry['settings'] = {
-            'em_settings': {
-                'subject': 'Authentication Request',
-                'sender': 'foo@bar.com',
-                'body': "You're temporary access code is: {code}"},
-            'email_auth_window': 120,
-            'static_path': '/auth/static',
-            'allowcodereminder_settings': {},
-            'allowcodereminder': False,
-            'auth_timeout': 7200,
-            'auth_remember_timeout': 86400,
-            'db_session_id': 'f'
-        }
-        req.registry['formtext'] = {}
-        req.registry['app'] = FakeApp()
-        req.registry['factored.template.customizations'] = {}
-        req.environ['auth'] = AuthTktAuthenticator(
-            AuthTktAuthenticationPolicy('SECRET', cookie_name='test'),
-            req.environ)
-        req.registry['mailer'] = self.mailer
-        req.sm = SM(req.environ)
-        return req
 
     def tearDown(self):
         self.session.close()
@@ -85,13 +43,44 @@ class BaseTest(unittest.TestCase):
 
     def setUp(self):
         self.config = testing.setUp()
+        self.settings = {
+            'sqlalchemy.url': 'sqlite://',
+            'em.subject': 'Authentication Request',
+            'em.sender': 'foo@bar.com',
+            'em.body': """
+    You have requested authentication.
+    Your temporary access code is: {code}""",
+            'auth_tkt.secret': 'secret',
+            'auth_tkt.cookie_name': 'pnutbtr',
+            'supported_auth_schemes': [
+                'Google Auth',
+                'Email'
+            ]
+        }
+        self.app = Authenticator(test_application, {}, **self.settings)
+        self.testapp = TestApp(self.app)
+        self.mailer = FakeMailer()
+        self.testapp.app.pyramid.registry['mailer'] = self.mailer
         from sqlalchemy import create_engine
         engine = create_engine('sqlite://')
         from factored.models import Base
         DBSession.configure(bind=engine)
         self.session = DBSession()
         Base.metadata.create_all(engine)
-        self.mailer = FakeMailer()
+
+
+class TestSome(BaseTest):
+
+    def setUp(self):
+        super(TestSome, self).setUp()
+        from factored.models import User
+        self.user = User(
+            username='foo@bar.com', secret=generate_random_google_code())
+        self.session.add(self.user)
+        self.session.commit()
+
+    def test_redirect_to_auth(self):
+        self.testapp.get('/', status=302)
 
 
 class TestGoogleAuth(BaseTest):
@@ -102,71 +91,47 @@ class TestGoogleAuth(BaseTest):
         self.user = User(username='foo', secret=generate_random_google_code())
         self.session.add(self.user)
 
-    def get_request(self, *args, **kwargs):
-        return super(TestGoogleAuth, self).get_request(
-            '/auth/ga', *args, **kwargs)
-
-    def _makeOne(self, request):
-        from factored.views import AuthView
-        return AuthView(request)
-
     def test_blank_form(self):
-        request = self.get_request()
-        info = self._makeOne(request)()
-        renderer = info['uform']
-        form = renderer.form
-        self.assertTrue('username' not in form.data)
+        resp = self.testapp.get('/auth/ga', status=200)
+        resp.mustcontain('name="username')
 
-    def test_submit_without_username(self):
-        request = self.get_request(post={'submit': 'Next'})
-        view = self._makeOne(request)
-        info = view()
-        renderer = info['uform']
-        form = renderer.form
-        self.assertTrue('username' in form.errors)
+    def test_submit_without_username_gives_error(self):
+        resp = self.testapp.post('/auth/ga', status=200, params={
+            'username': '',
+            'submit': 'Next'
+        })
+        resp.mustcontain('class="error')
 
     def test_submit_with_wrong_code(self):
-        request = self.get_request(
-            post={'submit': 'Authenticate',
-                  'username': 'foo',
-                  'code': '377474'})
-        info = self._makeOne(request)()
-        renderer = info['cform']
-        form = renderer.form
-        self.assertTrue('username' not in form.errors)
-        self.assertTrue('code' in form.errors)
-
-    def test_submit_with_wrong_username(self):
-        request = self.get_request(
-            post={'submit': 'Authenticate',
-                  'username': 'bar',
-                  'code': '377474'})
-        info = self._makeOne(request)()
-        renderer = info['cform']
-        form = renderer.form
-        self.assertTrue('code' in form.errors)
+        resp = self.testapp.post('/auth/ga', status=200, params={
+            'submit': 'Authenticate',
+            'username': 'foo',
+            'code': '377474'
+        })
+        resp.mustcontain('class="error')
+        resp.mustcontain('Invalid username')
 
     def test_submit_success_with_code(self):
         from factored.utils import get_google_auth_code
         from factored.models import User
         user = self.session.query(User).filter_by(username='foo').first()
-        request = self.get_request(
-            post={'username': 'foo', 'submit': 'Authenticate',
-                  'code': get_google_auth_code(user.secret)})
-        with self.assertRaises(HTTPFound):
-            self._makeOne(request)()
+        self.testapp.post('/auth/ga', status=302, params={
+            'submit': 'Authenticate',
+            'username': 'foo',
+            'code': get_google_auth_code(user.secret)
+        })
+        self.testapp.get('/')
 
     def test_submit_success_with_code_check_headers(self):
         from factored.utils import get_google_auth_code
         from factored.models import User
         user = self.session.query(User).filter_by(username='foo').first()
-        request = self.get_request(
-            post={'username': 'foo', 'submit': 'Authenticate',
-                  'code': get_google_auth_code(user.secret)})
-        try:
-            self._makeOne(request)()
-        except HTTPFound, ex:
-            self.assertTrue('test=' in ex.headers['Set-Cookie'])
+        resp = self.testapp.post('/auth/ga', status=302, params={
+            'submit': 'Authenticate',
+            'username': 'foo',
+            'code': get_google_auth_code(user.secret)
+        })
+        assert 'pnutbtr=' in resp.headers['Set-Cookie']
 
 
 class TestEmailAuth(BaseTest):
@@ -179,172 +144,127 @@ class TestEmailAuth(BaseTest):
         self.session.add(self.user)
         self.session.commit()
 
-    def _makeOne(self, request):
-        from factored.views import AuthView
-        return AuthView(request)
-
-    def get_request(self, *args, **kwargs):
-        return super(TestEmailAuth, self).get_request(
-            '/auth/em', *args, **kwargs)
-
-    def test_blank_form(self):
-        request = self.get_request()
-        info = self._makeOne(request)()
-        renderer = info['uform']
-        form = renderer.form
-        self.assertTrue('username' not in form.data)
+    def test_email_blank_form(self):
+        resp = self.testapp.get('/auth/em', status=200)
+        resp.mustcontain('name="username')
 
     def test_not_send_mail_without_username(self):
-        request = self.get_request(post={'submit': 'Send mail'})
-        info = self._makeOne(request)()
-        renderer = info['uform']
-        form = renderer.form
-        self.assertTrue('username' in form.errors)
+        resp = self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Send mail'
+        })
+        resp.mustcontain('class="error')
 
     def test_not_send_mail_with_incorrect_username_non_email(self):
-        request = self.get_request(
-            post={'submit': 'Send mail', 'username': 'foobar'})
-        info = self._makeOne(request)()
-        renderer = info['uform']
-        form = renderer.form
-        self.assertTrue('username' in form.errors)
+        resp = self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Send mail',
+            'username': 'foobar'
+        })
+        resp.mustcontain('class="error')
+        resp.mustcontain('must contain a single @')
 
     def test_not_send_mail_with_incorrect_username(self):
-        request = self.get_request(
-            post={'submit': 'Send mail', 'username': 'blah@foo.com'})
-        info = self._makeOne(request)()
-        renderer = info['uform']
-        form = renderer.form
-        self.assertTrue('username' in form.errors)
+        resp = self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Send mail',
+            'username': 'blah@foo.com'
+        })
+        resp.mustcontain('class="error')
+        assert 'must contain a single @' not in resp.body
+        resp.mustcontain('Should be the same as the username.')
 
     def test_send_mail_with_correct_username(self):
         from factored.models import User
-        request = self.get_request(
-            post={'submit': 'Send mail', 'username': 'foo@bar.com'})
+        resp = self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Send mail',
+            'username': 'foo@bar.com'
+        })
         user = self.session.query(User).filter_by(
             username='foo@bar.com').first()
-        info = self._makeOne(request)()
-        renderer = info['uform']
-        form = renderer.form
-        self.assertTrue(len(form.errors) == 0)
+        assert 'class="error' not in resp.body
         self.assertTrue(len(self.mailer.messages) == 1)
         self.assertTrue(user.generated_code in self.mailer.messages[0].body)
 
     def test_auth_correct(self):
         from factored.models import User
-
-        # first, set code
-        request = self.get_request(
-            post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        self._makeOne(request)()
+        self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Send mail',
+            'username': 'foo@bar.com'
+        })
         user = self.session.query(User).filter_by(
             username='foo@bar.com').first()
-
-        # then, auth with code
-        request = self.get_request(
-            post={'submit': 'Authenticate',
-                  'username': 'foo@bar.com',
-                  'code': user.generated_code})
-        with self.assertRaises(HTTPFound):
-            self._makeOne(request)()
+        self.testapp.post('/auth/em', status=302, params={
+            'submit': 'Authenticate',
+            'username': 'foo@bar.com',
+            'code': user.generated_code
+        })
+        self.testapp.get('/')
 
     def test_auth_correct_sets_headers(self):
         from factored.models import User
-
-        # first, set code
-        request = self.get_request(
-            post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        self._makeOne(request)()
+        self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Send mail',
+            'username': 'foo@bar.com'
+        })
         user = self.session.query(User).filter_by(
             username='foo@bar.com').first()
-
-        # then, auth with code
-        request = self.get_request(
-            post={'submit': 'Authenticate',
-                  'username': 'foo@bar.com',
-                  'code': user.generated_code})
-        try:
-            self._makeOne(request)()
-        except HTTPFound, ex:
-            self.assertTrue('test=' in ex.headers['Set-Cookie'])
+        resp = self.testapp.post('/auth/em', status=302, params={
+            'submit': 'Authenticate',
+            'username': 'foo@bar.com',
+            'code': user.generated_code
+        })
+        assert 'pnutbtr=' in resp.headers['Set-Cookie']
 
     def test_auth_fails_bad_username(self):
         from factored.models import User
-
-        # first, set code
-        request = self.get_request(
-            post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        self._makeOne(request)()
+        self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Send mail',
+            'username': 'foo@bar.com'
+        })
         user = self.session.query(User).filter_by(
             username='foo@bar.com').first()
-
-        # then, auth with code
-        request = self.get_request(
-            post={'submit': 'Authenticate',
-                  'username': 'foo3@bar.com',
-                  'code': user.generated_code
-                  })
-        info = self._makeOne(request)()
-        renderer = info['cform']
-        form = renderer.form
-        self.assertTrue(len(form.errors) == 1)
-        self.assertTrue('code' in form.errors)
-        self.assertTrue('Invalid username' in form.errors['code'])
+        resp = self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Authenticate',
+            'username': 'foo3@bar.com',
+            'code': user.generated_code
+        })
+        resp.mustcontain('class="error')
 
     def test_auth_fails_missing_code(self):
-        # first, set code
-        request = self.get_request(
-            post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        self._makeOne(request)()
-
-        # then, auth with code
-        request = self.get_request(
-            post={'submit': 'Authenticate',
-                  'username': 'foo@bar.com'})
-        info = self._makeOne(request)()
-        renderer = info['cform']
-        form = renderer.form
-        self.assertTrue(len(form.errors) == 1)
-        self.assertTrue('code' in form.errors)
+        self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Send mail',
+            'username': 'foo@bar.com'
+        })
+        resp = self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Authenticate',
+            'username': 'foo@bar.com'
+        })
+        resp.mustcontain('class="error')
 
     def test_auth_fails_bad_code(self):
-        # first, set code
-        request = self.get_request(
-            post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        self._makeOne(request)()
-
-        # then, auth with code
-        request = self.get_request(
-            post={'submit': 'Authenticate',
-                  'username': 'foo@bar.com',
-                  'code': 'random'})
-        info = self._makeOne(request)()
-        renderer = info['cform']
-        form = renderer.form
-        self.assertTrue(len(form.errors) == 1)
-        self.assertTrue('code' in form.errors)
+        self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Send mail',
+            'username': 'foo@bar.com'
+        })
+        resp = self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Authenticate',
+            'username': 'foo@bar.com',
+            'code': 'random'
+        })
+        resp.mustcontain('class="error')
 
     def test_auth_fails_time_limit(self):
         from factored.models import User
-
-        # first, set code
-        request = self.get_request(
-            post={'submit': 'Send mail', 'username': 'foo@bar.com'})
-        self._makeOne(request)()
+        self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Send mail',
+            'username': 'foo@bar.com'
+        })
         user = self.session.query(User).filter_by(
             username='foo@bar.com').first()
-
-        # set time back
         user.generated_code_time_stamp = \
             user.generated_code_time_stamp - timedelta(seconds=121)
-        # then, auth with code
-        request = self.get_request(
-            post={'submit': 'Authenticate',
-                  'username': 'foo@bar.com',
-                  'code': user.generated_code
-                  })
-        info = self._makeOne(request)()
-        renderer = info['cform']
-        form = renderer.form
-        self.assertTrue(len(form.errors) == 1)
-        self.assertTrue('code' in form.errors)
+        self.session.commit()
+        resp = self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Authenticate',
+            'username': 'foo@bar.com',
+            'code': user.generated_code
+        })
+        resp.mustcontain('class="error')
