@@ -8,6 +8,7 @@ from pyramid.httpexceptions import HTTPFound
 from datetime import timedelta
 from factored.auth_tkt import AuthTktAuthenticator
 from pyramid.authentication import AuthTktAuthenticationPolicy
+from webtest import TestApp
 
 
 class FakeMailer(object):
@@ -17,6 +18,8 @@ class FakeMailer(object):
 
     def send(self, message):
         self.messages.append(message)
+
+    send_immediately = send
 
 
 class FakeApp(object):
@@ -62,7 +65,8 @@ class BaseTest(unittest.TestCase):
             'allowcodereminder_settings': {},
             'allowcodereminder': False,
             'auth_timeout': 7200,
-            'auth_remember_timeout': 86400
+            'auth_remember_timeout': 86400,
+            'db_session_id': 'f'
         }
         req.registry['formtext'] = {}
         req.registry['app'] = FakeApp()
@@ -71,6 +75,7 @@ class BaseTest(unittest.TestCase):
             AuthTktAuthenticationPolicy('SECRET', cookie_name='test'),
             req.environ)
         req.registry['mailer'] = self.mailer
+        req.sm = SM(req.environ)
         return req
 
     def tearDown(self):
@@ -215,13 +220,15 @@ class TestEmailAuth(BaseTest):
         from factored.models import User
         request = self.get_request(
             post={'submit': 'Send mail', 'username': 'foo@bar.com'})
+        user = self.session.query(User).filter_by(
+            username='foo@bar.com').first()
         info = self._makeOne(request)()
         renderer = info['uform']
         form = renderer.form
         self.assertTrue(len(form.errors) == 0)
         self.assertTrue(len(self.mailer.messages) == 1)
-        user = self.session.query(User).filter_by(
-            username='foo@bar.com').first()
+
+        import pdb; pdb.set_trace()
         self.assertTrue(user.generated_code in self.mailer.messages[0].body)
 
     def test_auth_correct(self):
@@ -342,7 +349,3 @@ class TestEmailAuth(BaseTest):
         form = renderer.form
         self.assertTrue(len(form.errors) == 1)
         self.assertTrue('code' in form.errors)
-
-
-if __name__ == '__main__':
-    unittest.main()

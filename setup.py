@@ -2,6 +2,18 @@ from setuptools import setup, find_packages
 
 version = '2.1'
 
+requires = [
+    'PasteDeploy',
+    'PasteScript',
+    'webob',
+    'WSGIProxy',
+    'pyramid',
+    'SQLAlchemy<=0.7.9',
+    'pyramid_simpleform',
+    'pyramid_mailer',
+    'argparse'
+]
+
 setup(name='factored',
       version=version,
       description="A WSGI app that allows you to add another factor of "
@@ -21,18 +33,15 @@ setup(name='factored',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
       zip_safe=False,
-      install_requires=[
-          'PasteDeploy',
-          'PasteScript',
-          'webob',
-          'WSGIProxy',
-          'pyramid',
-          'SQLAlchemy<=0.7.9',
-          'pyramid_debugtoolbar',
-          'pyramid_simpleform',
-          'pyramid_mailer',
-          'argparse'
-      ],
+      install_requires=requires,
+      tests_require=requires + ['webtest'],
+      extras_require={
+          'test': [
+              'webtest',
+              'pyramid_debugtoolbar'
+          ]
+      },
+      test_suite="factored",
       entry_points="""
       # -*- Entry points: -*-
       [paste.app_factory]
