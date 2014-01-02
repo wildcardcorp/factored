@@ -1,14 +1,8 @@
 import unittest
-
 from pyramid import testing
-
 from factored.models import DBSession
 from factored.utils import generate_random_google_code
-from pyramid.httpexceptions import HTTPFound
 from datetime import timedelta
-from factored.auth_tkt import AuthTktAuthenticator
-from pyramid.authentication import AuthTktAuthenticationPolicy
-from webtest import TestApp
 from factored.app import Authenticator
 
 
@@ -58,6 +52,7 @@ class BaseTest(unittest.TestCase):
             ]
         }
         self.app = Authenticator(test_application, {}, **self.settings)
+        from webtest import TestApp
         self.testapp = TestApp(self.app)
         self.mailer = FakeMailer()
         self.testapp.app.pyramid.registry['mailer'] = self.mailer
