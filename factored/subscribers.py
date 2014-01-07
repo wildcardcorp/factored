@@ -19,7 +19,10 @@ def add_globals(event):
         context['templates'] = templates
 
         def render(name):
-            return templates.render('templates/%s' % name)
+            if ':' in name:
+                return templates.render(name)
+            else:
+                return templates.render('templates/%s' % name)
         context['render'] = render
     if 'content_renderer' not in context:
         context['content_renderer'] = 'templates/auth-chooser.pt'
