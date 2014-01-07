@@ -26,6 +26,12 @@ class TemplateRendererFactory(object):
             tmpl_name = os.path.basename(tmpl)
             if tmpl_name in self.customizations:
                 package, tmpl = self.customizations[tmpl_name]
+            if package is None and ':' in tmpl:
+                pkg, tmpl = tmpl.split(':', 1)
+                try:
+                    package = __import__(pkg)
+                except ImportError:
+                    pass
             return render(tmpl, self.context, request=self.req,
                           package=package)
         except ValueError:
