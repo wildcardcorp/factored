@@ -8,6 +8,8 @@ def add_globals(event):
     req = event['request']
     view = event['view']
     context = event.rendering_val
+    if context is None:
+        return {}
     if 'static_path' not in context:
         context['static_path'] = req.registry['settings']['static_path']
     if 'req' not in context:
@@ -21,9 +23,12 @@ def add_globals(event):
         context['render'] = render
     if 'content_renderer' not in context:
         context['content_renderer'] = 'templates/auth-chooser.pt'
-    if 'allow_code_reminder' not in context and hasattr(view,
-                                                        'allow_code_reminder'):
-        context['allow_code_reminder'] = view.allow_code_reminder
+    if 'allow_code_reminder' not in context:
+        if hasattr(view, 'allow_code_reminder'):
+            context['allow_code_reminder'] = view.allow_code_reminder
+        elif 'auth_plugin' in context:
+            context['allow_code_reminder'] = \
+                context['auth_plugin'].allow_code_reminder
     # update app settings as template globals. Only missing ones.
     for key, value in req.registry['settings'].items():
         if key not in context:
