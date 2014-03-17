@@ -155,10 +155,10 @@ class Authenticator(object):
 
 class SimpleProxy(object):
 
-    def __init__(self, global_config, server, port, scheme=None):
+    def __init__(self, global_config, server, port, urlscheme=None):
         self.server = server
         self.port = port
-        self.scheme = scheme
+        self.scheme = urlscheme
 
     def __call__(self, environ, start_response):
         environ['SERVER_NAME'] = self.server
