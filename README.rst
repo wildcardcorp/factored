@@ -180,6 +180,7 @@ An example to follow if you're not using a git checkout::
     use = egg:factored#simpleproxy
     server = 127.0.0.1
     port = 8090
+    urlscheme = http
 
     [filter-app:main]
     use = egg:factored#main

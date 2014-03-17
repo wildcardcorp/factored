@@ -155,11 +155,14 @@ class Authenticator(object):
 
 class SimpleProxy(object):
 
-    def __init__(self, global_config, server, port):
+    def __init__(self, global_config, server, port, scheme=None):
         self.server = server
         self.port = port
+        self.scheme = scheme
 
     def __call__(self, environ, start_response):
         environ['SERVER_NAME'] = self.server
         environ['SERVER_PORT'] = self.port
+        if self.scheme:
+            environ['wsgi.url_scheme'] = self.scheme
         return proxy_exact_request(environ, start_response)
