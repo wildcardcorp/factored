@@ -1,6 +1,10 @@
 from webob.cookies import RequestCookies
 from pyramid.authentication import AuthTktAuthenticationPolicy
-from pyramid.authentication import AuthTktCookieHelper, EXPIRE
+from pyramid.authentication import AuthTktCookieHelper
+try:
+    from pyramid.authentication import EXPIRE
+except ImportError:
+    EXPIRE = object()
 import datetime
 
 _marker = object()
@@ -14,19 +18,20 @@ class CookieHelper(AuthTktCookieHelper):
     def _get_cookies(self, environ, value, max_age=None):
         cookies = super(CookieHelper, self)._get_cookies(environ, value,
                                                          max_age)
-        if max_age is EXPIRE:
-            max_age = "; Max-Age=0; Expires=Wed, 31-Dec-97 23:59:59 GMT"
-        elif max_age is not None:
-            later = datetime.datetime.utcnow() + datetime.timedelta(
-                seconds=int(max_age))
-            # Wdy, DD-Mon-YY HH:MM:SS GMT
-            expires = later.strftime('%a, %d %b %Y %H:%M:%S GMT')
-            # the Expires header is *required* at least for IE7 (IE7 does
-            # not respect Max-Age)
-            max_age = "; Max-Age=%s; Expires=%s" % (max_age, expires)
-        else:
-            max_age = ''
         if self.cookie_domain:
+            if max_age is EXPIRE:
+                max_age = "; Max-Age=0; Expires=Wed, 31-Dec-97 23:59:59 GMT"
+            elif max_age is not None:
+                later = datetime.datetime.utcnow() + datetime.timedelta(
+                    seconds=int(max_age))
+                # Wdy, DD-Mon-YY HH:MM:SS GMT
+                expires = later.strftime('%a, %d %b %Y %H:%M:%S GMT')
+                # the Expires header is *required* at least for IE7 (IE7 does
+                # not respect Max-Age)
+                max_age = "; Max-Age=%s; Expires=%s" % (max_age, expires)
+            else:
+                max_age = ''
+
             cookies.append(('Set-Cookie', '%s="%s"; Path=%s; Domain=%s%s%s' % (
                 self.cookie_name, value, self.path,
                 self.cookie_domain, max_age, self.static_flags)))
