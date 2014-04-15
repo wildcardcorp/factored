@@ -14,9 +14,10 @@ using virtualenv::
 
     virtualenv factored
     cd factored
-    git clone git://github.com/vangheem/factored.git
+    git clone git://github.com/wildcardcorp/factored.git
     cd factored
-    ../bin/python setup.py develop
+    ../bin/python bootstrap.py
+    ../bin/buildout
     ../bin/initializedb develop.ini
     ../bin/adduser develop.ini --username=john@foo.bar
     ../bin/paster serve develop.ini

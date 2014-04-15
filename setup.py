@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '2.1'
+version = '2.2'
 
 requires = [
     'PasteDeploy',
@@ -11,19 +11,21 @@ requires = [
     'SQLAlchemy<=0.7.9',
     'pyramid_simpleform',
     'pyramid_mailer',
-    'argparse'
+    'argparse',
+    'pyramid_tm'
 ]
 
 setup(name='factored',
       version=version,
       description="A WSGI app that allows you to add another factor of "
                   "authentication to any application server.",
-      long_description=open("README.rst").read() + "\n" +
-                       open("CHANGES.txt").read(),
+      long_description="%s\n%s" % (
+          open("README.rst").read(),
+          open("CHANGES.txt").read()),
       classifiers=[
-        'Topic :: Internet :: WWW/HTTP :: WSGI',
-        'Topic :: Internet :: WWW/HTTP :: WSGI :: Application',
-        'Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware'],
+          'Topic :: Internet :: WWW/HTTP :: WSGI',
+          'Topic :: Internet :: WWW/HTTP :: WSGI :: Application',
+          'Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware'],
       keywords='mutli factor authentication 2factor mutl-factor '
                'auth auth_tkt google otp',
       author='Nathan Van Gheem',
@@ -46,6 +48,7 @@ setup(name='factored',
       # -*- Entry points: -*-
       [paste.app_factory]
       simpleproxy = factored.app:SimpleProxy
+      main = factored.app:Authenticator
 
       [paste.filter_app_factory]
       main = factored.app:Authenticator

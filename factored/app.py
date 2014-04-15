@@ -52,7 +52,12 @@ def normalize_settings(settings):
 
 class Authenticator(object):
 
-    def __init__(self, app, global_config, **settings):
+    def __init__(self, *args, **settings):
+        if len(args) == 1:
+            # regular app
+            app = None
+        else:
+            app = args[0]
         self.initialize_settings(app, settings)
 
         # db configuration
@@ -147,9 +152,10 @@ class Authenticator(object):
             auth = AuthTktAuthenticator(self.auth_tkt_policy, environ2)
             environ2['auth'] = auth
             if auth.authenticate():
-                return self.app(environ2, start_response2)
-            else:
-                return self.pyramid(environ2, start_response2)
+                if self.app is not None:
+                    # if this is a filter, we can pass on to the actual app
+                    return self.app(environ2, start_response2)
+            return self.pyramid(environ2, start_response2)
         return SMFilter(wrapped_app)(environ, start_response)
 
 
