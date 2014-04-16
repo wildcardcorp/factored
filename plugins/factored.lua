@@ -1,39 +1,16 @@
---[[
---  These settings should match with your factored settings.
---]]
-local settings = {
-  -- this is factored host it's running on
-  host='127.0.0.1',
-  -- factored port it's running
-  port=8000,
-  -- do we also need to provide way to override factored auth path?
-  -- auth tkt secret
-  secret='secret',
-  -- auth tkt cookie name
-  cookie_name='pnutbtr',
-  -- include ip for cookie value
-  include_ip=false,
-  -- manually handle cookie timeouts
-  timeout=false,
-  -- base path to the plugin source files
-  basepath='/home/nathan/code/factored/ats/'
--- hashalg = md5
-}
-
 require 'string'
 require 'math'
 require 'package'
 require 'os'
-require 'debug'
 
 
 -- XXX need to figure out a better way to load these from a plugin
 --    XXX Maybe part of the configuration could be setting the LUA_PATH env variable
 --        to include the settings.basepath value instead of having a settings.basepath?
-sha256 = loadfile(settings.basepath .. 'sha.lua')()
-loadfile(settings.basepath .. 'bit.lua')()
-
-local TS = require 'ts'
+-- sha256 = loadfile(settings.basepath .. 'sha.lua')()
+-- loadfile(settings.basepath .. 'bit.lua')()
+sha256 = require 'sha'
+require 'bit'
 
 function string:trim()
   return (self:gsub("^%s*(.-)%s*$", "%1"))
@@ -113,14 +90,14 @@ function encode_ip_timestamp(ip, timestamp)
 end
 
 
-function calculate_digest(ip, timestamp, userid, tokens, user_data)
+function calculate_digest(settings, ip, timestamp, userid, tokens, user_data)
   timestamp = encode_ip_timestamp(ip, timestamp)
   local digest = sha256(timestamp .. settings.secret .. userid .. '\0' .. tokens .. '\0' .. user_data)
   return sha256(digest .. settings.secret)
 end
 
 
-function parse_ticket(ticket, ip)
+function parse_ticket(settings, ticket, ip)
   -- Parse the ticket, returning a table of
   -- (timestamp, userid, tokens, user_data)
   ticket = ticket:trim()
@@ -145,7 +122,7 @@ function parse_ticket(ticket, ip)
     user_data = data
   end
 
-  local expected = calculate_digest(ip, timestamp, userid, tokens, user_data)
+  local expected = calculate_digest(settings, ip, timestamp, userid, tokens, user_data)
 
   if not is_equal(expected, digest) then
     return false
@@ -162,52 +139,24 @@ function parse_ticket(ticket, ip)
 end
 
 
-function valid_auth_tkt(request)
-  local cookies = parse_cookies(request.headers.Cookie)
-  local cookie = cookies[settings.cookie_name]
+function valid_auth_tkt(settings, cookie, ip)
   if cookie == nil then
     return false
   end
 
-  local remote_addr = '0.0.0.0'
-  if settings.include_ip then
-    ip, port, family = request.client_addr.get_addr()
-    remote_addr = ip
-  end
-
-  local ticket = parse_ticket(cookie.value, remote_addr)
+  local ticket = parse_ticket(settings, cookie, ip)
   if not ticket then
     return false
   end
 
   local now = os.time()
 
-  if settings.timeout then
+  if settings.timeout and settings.timeout ~= 0 then
     if ticket.timestamp + settings.timeout < now then
       -- the auth_tkt data has expired
       return false
     end
   end
 
-  return true
-end
-
-
--- Compulsory remap hook. We are given a request object that we can modify if necessary.
-function remap(request)
-  -- Get a copy of the current URL.
-  url = request:url()
-
-  if not valid_auth_tkt(request) then
-    url.host = settings.host
-    url.port = settings.port
-    -- Rewrite the request URL. The remap plugin chain continues and other plugins
-    request:rewrite(url)
-  end
-
-end
-
--- Optional module initialization hook.
-function init()
   return true
 end
