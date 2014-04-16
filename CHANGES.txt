@@ -1,8 +1,8 @@
 Changelog
 =========
 
-2.2a1 (unreleased)
-------------------
+2.2 (2014-04-16)
+----------------
 
 - move all form logic to plugin so everything can be overridden
 
