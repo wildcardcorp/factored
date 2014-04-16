@@ -3,7 +3,10 @@
 require 'string'
 require 'math'
 require 'package'
+require 'os'
+require 'debug'
 
+-- XXX need to figure out a better way to load these from a plugin
 local basepath = '/home/nathan/code/factored/ats/'
 sha256 = loadfile(basepath .. 'sha.lua')()
 loadfile(basepath .. 'bit.lua')()
@@ -92,24 +95,22 @@ end
 
 -- this function licensed under the MIT license (stolen from Paste)
 function encode_ip_timestamp(ip, timestamp)
-  ip_chars = ''
+  local ip_chars = ''
   for k, v in pairs(ip:split('.')) do
     ip_chars = ip_chars .. string.char(tonumber(v))
   end
-  t = tonumber(timestamp)
-  ts_chars = string.char(bit.brshift(bit.band(t, 4278190080), 24)) ..
-             string.char(bit.brshift(bit.band(t, 16711680), 16)) ..
-             string.char(bit.brshift(bit.band(t, 65280), 8)) ..
-             string.char(bit.band(t, 255))
+  local t = tonumber(timestamp)
+  local ts_chars = string.char(bit.brshift(bit.band(t, 4278190080), 24)) ..
+                   string.char(bit.brshift(bit.band(t, 16711680), 16)) ..
+                   string.char(bit.brshift(bit.band(t, 65280), 8)) ..
+                   string.char(bit.band(t, 255))
   return ip_chars .. ts_chars
 end
 
 
 function calculate_digest(ip, timestamp, userid, tokens, user_data)
   timestamp = encode_ip_timestamp(ip, timestamp)
-  print('timestamp:', #timestamp)
-  digest = sha256(timestamp .. secret .. userid .. '\0' .. tokens .. '\0' .. user_data)
-  print('digest:', digest)
+  local digest = sha256(timestamp .. secret .. userid .. '\0' .. tokens .. '\0' .. user_data)
   return sha256(digest .. secret)
 end
 
@@ -125,25 +126,24 @@ function parse_ticket(ticket, ip)
     -- trim quotes around ticket value
     ticket = ticket:sub(2, string.len(ticket) - 1)
   end
-  digest_size = 32 * 2
-  digest = ticket:sub(1, digest_size)
-  timestamp = ticket:sub(digest_size + 1, digest_size + 8)
+  local digest_size = 32 * 2 -- only support for sha256 right now
+  local digest = ticket:sub(1, digest_size)
+  local timestamp = ticket:sub(digest_size + 1, digest_size + 8)
   timestamp = tonumber(timestamp, 16)
-  user_chunk = ticket:sub(digest_size + 8 + 1, string.len(ticket))
-  user_data = user_chunk:split('!')
-  userid = user_data[1]
-  data = user_data[2]
+  local user_chunk = ticket:sub(digest_size + 8 + 1, string.len(ticket))
+  local user_data = user_chunk:split('!')
+  local userid = user_data[1]
+  local data = user_data[2]
+  local tokens = ''
   if string.find(data, '!') ~= nil then
     user_data = data:split('!', 1)
     tokens = user_data[1]
     user_data = user_data[2]
   else
-    tokens = ''
     user_data = data
   end
 
-  expected = calculate_digest(ip, timestamp, userid, tokens, user_data)
-  print('hi2')
+  local expected = calculate_digest(ip, timestamp, userid, tokens, user_data)
 
   if not is_equal(expected, digest) then
     return false
@@ -151,7 +151,7 @@ function parse_ticket(ticket, ip)
 
   tokens = tokens:split(',')
 
-  result = {}
+  local result = {}
   result['timestamp'] = timestamp
   result['userid'] = userid
   result['tokens'] = tokens
@@ -161,26 +161,27 @@ end
 
 
 function valid_auth_tkt(request)
-  cookies = parse_cookies(request.headers.Cookie)
-  cookie = cookies[cookie_name]
+  local cookies = parse_cookies(request.headers.Cookie)
+  local cookie = cookies[cookie_name]
   if cookie == nil then
     return false
   end
 
-  remote_addr = '0.0.0.0'
+  local remote_addr = '0.0.0.0'
   if include_ip then
     ip, port, family = request.client_addr.get_addr()
     remote_addr = ip
   end
 
-  ticket = parse_ticket(cookie.value, remote_addr)
+  local ticket = parse_ticket(cookie.value, remote_addr)
   if not ticket then
     return false
   end
 
-  now = os.time()
+  local now = os.time()
+
   if timeout then
-    if ticket.timestamp + self.timeout < now then
+    if ticket.timestamp + timeout < now then
       -- the auth_tkt data has expired
       return false
     end
@@ -195,7 +196,6 @@ function remap(request)
   -- Get a copy of the current URL.
   url = request:url()
 
-  print(string.format('remapping %s://%s', url.scheme, url.host))
   if not valid_auth_tkt(request) then
     url.host = host
     url.port = port
@@ -207,6 +207,5 @@ end
 
 -- Optional module initialization hook.
 function init()
-  print(string.format('init called by Traffic Server %s', TS.VERSION))
   return true
 end
