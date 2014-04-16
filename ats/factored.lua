@@ -28,6 +28,8 @@ require 'debug'
 
 
 -- XXX need to figure out a better way to load these from a plugin
+--    XXX Maybe part of the configuration could be setting the LUA_PATH env variable
+--        to include the settings.basepath value instead of having a settings.basepath?
 sha256 = loadfile(settings.basepath .. 'sha.lua')()
 loadfile(settings.basepath .. 'bit.lua')()
 
