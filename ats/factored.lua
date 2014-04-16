@@ -46,8 +46,6 @@ function string:split(sep)
 end
 
 
-
-
 function parse_cookie(cookiestr)
   local key, val, flags = cookiestr:match("%s?([^=;]+)=?([^;]*)(.*)")
   if not key then
@@ -118,9 +116,6 @@ function calculate_digest(ip, timestamp, userid, tokens, user_data)
   local digest = sha256(timestamp .. settings.secret .. userid .. '\0' .. tokens .. '\0' .. user_data)
   return sha256(digest .. settings.secret)
 end
-
-
--- 74be7b3a9324f6723743e1cd8eed58d228048538f1f9ebbb46a993ac20484a7601d57409bab6c6c74182414430e757eebd641dbcd83bea42ddf56e45630dc38e534c5c22dmFuZ2hlZW1AZ21haWwuY29t!userid_type:b64unicode
 
 
 function parse_ticket(ticket, ip)
@@ -212,6 +207,5 @@ end
 
 -- Optional module initialization hook.
 function init()
-  print 'hi'
   return true
 end
