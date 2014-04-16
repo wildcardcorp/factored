@@ -1,4 +1,24 @@
--- Pull in the Traffic Server API.
+--[[
+--  These settings should match with your factored settings.
+--]]
+local settings = {
+  -- this is factored host it's running on
+  host='127.0.0.1',
+  -- factored port it's running
+  port=8000,
+  -- do we also need to provide way to override factored auth path?
+  -- auth tkt secret
+  secret='secret',
+  -- auth tkt cookie name
+  cookie_name='pnutbtr',
+  -- include ip for cookie value
+  include_ip=false,
+  -- manually handle cookie timeouts
+  timeout=false,
+  -- base path to the plugin source files
+  basepath='/home/nathan/code/factored/ats/'
+-- hashalg = md5
+}
 
 require 'string'
 require 'math'
@@ -6,10 +26,10 @@ require 'package'
 require 'os'
 require 'debug'
 
+
 -- XXX need to figure out a better way to load these from a plugin
-local basepath = '/home/nathan/code/factored/ats/'
-sha256 = loadfile(basepath .. 'sha.lua')()
-loadfile(basepath .. 'bit.lua')()
+sha256 = loadfile(settings.basepath .. 'sha.lua')()
+loadfile(settings.basepath .. 'bit.lua')()
 
 local TS = require 'ts'
 
@@ -25,21 +45,6 @@ function string:split(sep)
   return fields
 end
 
-
--- TODO
--- - auth request
--- - configure via ini
--- - configure multiple hosts
-
-local scheme = 'http'
-local host = '127.0.0.1'
-local port = 8000
-local secret = 'secret'
-local cookie_name = 'pnutbtr'
-local secure = false
-local include_ip = false
-local timeout = false
--- auth_tkt.hashalg = md5
 
 
 
@@ -110,8 +115,8 @@ end
 
 function calculate_digest(ip, timestamp, userid, tokens, user_data)
   timestamp = encode_ip_timestamp(ip, timestamp)
-  local digest = sha256(timestamp .. secret .. userid .. '\0' .. tokens .. '\0' .. user_data)
-  return sha256(digest .. secret)
+  local digest = sha256(timestamp .. settings.secret .. userid .. '\0' .. tokens .. '\0' .. user_data)
+  return sha256(digest .. settings.secret)
 end
 
 
@@ -162,13 +167,13 @@ end
 
 function valid_auth_tkt(request)
   local cookies = parse_cookies(request.headers.Cookie)
-  local cookie = cookies[cookie_name]
+  local cookie = cookies[settings.cookie_name]
   if cookie == nil then
     return false
   end
 
   local remote_addr = '0.0.0.0'
-  if include_ip then
+  if settings.include_ip then
     ip, port, family = request.client_addr.get_addr()
     remote_addr = ip
   end
@@ -180,8 +185,8 @@ function valid_auth_tkt(request)
 
   local now = os.time()
 
-  if timeout then
-    if ticket.timestamp + timeout < now then
+  if settings.timeout then
+    if ticket.timestamp + settings.timeout < now then
       -- the auth_tkt data has expired
       return false
     end
@@ -197,8 +202,8 @@ function remap(request)
   url = request:url()
 
   if not valid_auth_tkt(request) then
-    url.host = host
-    url.port = port
+    url.host = settings.host
+    url.port = settings.port
     -- Rewrite the request URL. The remap plugin chain continues and other plugins
     request:rewrite(url)
   end
@@ -207,5 +212,6 @@ end
 
 -- Optional module initialization hook.
 function init()
+  print 'hi'
   return true
 end
