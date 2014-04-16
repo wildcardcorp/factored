@@ -1,11 +1,14 @@
 -- Pull in the Traffic Server API.
-local TS = require 'ts'
 
 require 'string'
 require 'math'
+require 'package'
 
 local basepath = '/home/nathan/code/factored/ats/'
-loadfile(basepath .. 'sha.lua')
+sha256 = loadfile(basepath .. 'sha.lua')()
+loadfile(basepath .. 'bit.lua')()
+
+local TS = require 'ts'
 
 function string:trim()
   return (self:gsub("^%s*(.-)%s*$", "%1"))
@@ -54,6 +57,9 @@ end
 
 
 function parse_cookies(cookies)
+  if not cookies then
+    return {}
+  end
   local result = {}
   for k, cookiestr in pairs(cookies:split(';')) do
     local cookie = parse_cookie(cookiestr)
@@ -91,17 +97,19 @@ function encode_ip_timestamp(ip, timestamp)
     ip_chars = ip_chars .. string.char(tonumber(v))
   end
   t = tonumber(timestamp)
-  ts_chars = string.char(bit32.rshift(bit32.band(t, 4278190080), 24)) ..
-             string.char(bit32.rshift(bit32.band(t, 16711680), 16)) ..
-             string.char(bit32.rshift(bit32.band(t, 65280), 8)) ..
-             string.char(bit32.band(t, 255))
-
+  ts_chars = string.char(bit.brshift(bit.band(t, 4278190080), 24)) ..
+             string.char(bit.brshift(bit.band(t, 16711680), 16)) ..
+             string.char(bit.brshift(bit.band(t, 65280), 8)) ..
+             string.char(bit.band(t, 255))
   return ip_chars .. ts_chars
 end
 
 
 function calculate_digest(ip, timestamp, userid, tokens, user_data)
-  digest = sha256(encode_ip_timestamp(ip, timestamp) .. secret .. userid .. '\0' .. tokens .. '\0' .. user_data)
+  timestamp = encode_ip_timestamp(ip, timestamp)
+  print('timestamp:', #timestamp)
+  digest = sha256(timestamp .. secret .. userid .. '\0' .. tokens .. '\0' .. user_data)
+  print('digest:', digest)
   return sha256(digest .. secret)
 end
 
@@ -111,20 +119,31 @@ end
 
 function parse_ticket(ticket, ip)
   -- Parse the ticket, returning a table of
-  -- (timestamp, userid, tokens, user_data).
-  ticket = ticket.trim()
+  -- (timestamp, userid, tokens, user_data)
+  ticket = ticket:trim()
+  if ticket:sub(1, 1) == '"' then
+    -- trim quotes around ticket value
+    ticket = ticket:sub(2, string.len(ticket) - 1)
+  end
   digest_size = 32 * 2
-  digest = ticket.sub(0, digest_size)
-  timestamp = tonumber(ticket.sub(digest_size + 1, digest_size + 8 + 1), 16)
-  userid, data = ticket.sub(digest_size + 8 + 1, string.len(ticket)):split('!')[2]
+  digest = ticket:sub(1, digest_size)
+  timestamp = ticket:sub(digest_size + 1, digest_size + 8)
+  timestamp = tonumber(timestamp, 16)
+  user_chunk = ticket:sub(digest_size + 8 + 1, string.len(ticket))
+  user_data = user_chunk:split('!')
+  userid = user_data[1]
+  data = user_data[2]
   if string.find(data, '!') ~= nil then
-    tokens, user_data = data.split('!', 1)
+    user_data = data:split('!', 1)
+    tokens = user_data[1]
+    user_data = user_data[2]
   else
     tokens = ''
     user_data = data
   end
 
   expected = calculate_digest(ip, timestamp, userid, tokens, user_data)
+  print('hi2')
 
   if not is_equal(expected, digest) then
     return false
@@ -154,7 +173,7 @@ function valid_auth_tkt(request)
     remote_addr = ip
   end
 
-  ticket = parse_ticket(cookie, ip)
+  ticket = parse_ticket(cookie.value, remote_addr)
   if not ticket then
     return false
   end
