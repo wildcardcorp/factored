@@ -1,0 +1,5 @@
+- more work on ats plugin
+- nginx plugin using lua again
+- support for text messages
+- support for yubikey
+
