@@ -1,7 +1,7 @@
 Introduction
 ============
 
-Docs are located at: 
+`Read the docs<https://www.readthedocs.org/factored>`_
 
 Credit
 ------
