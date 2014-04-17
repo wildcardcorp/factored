@@ -7,10 +7,10 @@ local settings = {
   -- factored port it's running
   port=8000,
   -- do we also need to provide way to override factored auth path?
-  -- auth tkt secret
-  secret='secret',
   -- auth tkt cookie name
-  cookie_name='pnutbtr',
+  cookie_name='something',
+  -- auth tkt secret
+  secret='sdfsdfskdjlkj34ljk3l32l4kj23',
   -- include ip for cookie value
   include_ip=false,
   -- manually handle cookie timeouts
@@ -19,6 +19,8 @@ local settings = {
   basepath='/home/nathan/code/factored/ats/'
 -- hashalg = md5
 }
+
+local ts = require 'ts'
 
 require 'string'
 require 'math'
@@ -30,13 +32,13 @@ package.path = package.path .. ';/usr/local/factored/plugins/?.lua;' ..
 
 require 'factored'
 
-
 -- Compulsory remap hook. We are given a request object that we can modify if necessary.
 function remap(request)
   -- Get a copy of the current URL.
   url = request:url()
   local cookies = parse_cookies(request.headers.Cookie)
   local cookie = cookies[settings.cookie_name]
+
   local remote_addr = '0.0.0.0'
   if settings.include_ip then
     ip, port, family = request.client_addr.get_addr()
