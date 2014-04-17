@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '2.2'
+version = '2.3'
 
 requires = [
     'PasteDeploy',
@@ -55,10 +55,10 @@ setup(name='factored',
       sm = factored.sm:make_sm
 
       [console_scripts]
-      initializedb = factored.scripts.initializedb:main
-      adduser = factored.scripts.users:add
-      removeuser = factored.scripts.users:remove
-      listusers = factored.scripts.users:listusers
-      listuserinfo = factored.scripts.users:listuserinfo
+      factored_initializedb = factored.scripts.initializedb:main
+      factored_adduser = factored.scripts.users:add
+      factored_removeuser = factored.scripts.users:remove
+      factored_listusers = factored.scripts.users:listusers
+      factored_listuserinfo = factored.scripts.users:listuserinfo
       """,
       )
