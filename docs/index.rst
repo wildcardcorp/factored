@@ -13,6 +13,7 @@ Contents:
 
    install
    config
+   users
    webserverplugins
 
 
