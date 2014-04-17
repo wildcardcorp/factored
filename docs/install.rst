@@ -4,7 +4,7 @@ Installation
 Download
 --------
 
-Choose a release from `here<https://github.com/wildcardcorp/factored/releases>`
+Choose a release from `here <https://github.com/wildcardcorp/factored/releases>`_
 or just download the latest::
 
     wget https://github.com/wildcardcorp/factored/archive/master.zip
