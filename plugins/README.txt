@@ -21,10 +21,13 @@ Install
 TODO
 ----
 
-- change to one plugin installation location and use a small settings file to load plugin
-    - should allow for multiple configurations easier
-- also could use some way to easier configure multiple factored configurations
-  for different websites
+- should allow for multiple configurations easier somehow?
+
+Notes
+-----
+
+Don't be confused with the ts-lua plugin, we're using the straight lua plugin
+which allows you to override redirects; however it is limited in other ways...
 
 
 Nginx Plugin
