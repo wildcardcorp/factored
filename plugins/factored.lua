@@ -82,6 +82,7 @@ function encode_ip_timestamp(ip, timestamp)
     ip_chars = ip_chars .. string.char(tonumber(v))
   end
   local t = tonumber(timestamp)
+  ngx.log(ngx.ERR, t)
   local ts_chars = string.char(bit.brshift(bit.band(t, 4278190080), 24)) ..
                    string.char(bit.brshift(bit.band(t, 16711680), 16)) ..
                    string.char(bit.brshift(bit.band(t, 65280), 8)) ..
@@ -109,17 +110,25 @@ function parse_ticket(settings, ticket, ip)
   local digest = ticket:sub(1, digest_size)
   local timestamp = ticket:sub(digest_size + 1, digest_size + 8)
   timestamp = tonumber(timestamp, 16)
+  if timestamp == nil then
+    -- not a valid token
+    return false
+  end
   local user_chunk = ticket:sub(digest_size + 8 + 1, string.len(ticket))
   local user_data = user_chunk:split('!')
   local userid = user_data[1]
   local data = user_data[2]
   local tokens = ''
-  if string.find(data, '!') ~= nil then
-    user_data = data:split('!', 1)
-    tokens = user_data[1]
-    user_data = user_data[2]
+  if type(data) == 'string' then
+    if string.find(data, '!') ~= nil then
+      user_data = data:split('!', 1)
+      tokens = user_data[1]
+      user_data = user_data[2]
+    else
+      user_data = data
+    end
   else
-    user_data = data
+    user_data = ''
   end
 
   local expected = calculate_digest(settings, ip, timestamp, userid, tokens, user_data)
