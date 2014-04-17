@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '2.3'
+version = '3.0'
 
 requires = [
     'PasteDeploy',
@@ -30,7 +30,7 @@ setup(name='factored',
                'auth auth_tkt google otp',
       author='Nathan Van Gheem',
       author_email='vangheem@gmail.com',
-      url='http://github.com/vangheem/factored',
+      url='https://github.com/wildcardcorp/factored',
       license='GPL2',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
