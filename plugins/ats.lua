@@ -8,7 +8,7 @@ local settings = {
   port=8000,
   -- do we also need to provide way to override factored auth path?
   -- auth tkt cookie name
-  cookie_name='something',
+  cookie_name='something2',
   -- auth tkt secret
   secret='sdfsdfskdjlkj34ljk3l32l4kj23',
   -- include ip for cookie value
@@ -27,8 +27,11 @@ require 'math'
 require 'package'
 require 'os'
 
-package.path = package.path .. ';/usr/local/factored/plugins/?.lua;' ..
-  '/opt/factored/plugins?.lua;/home/nathan/code/factored/plugins/?.lua'
+-- add plugin directory to load path
+require 'debug'
+local basepath = debug.getinfo(1).source
+basepath = basepath:sub(2, string.len(basepath) - 7)  -- pull out actual path
+package.path = package.path .. ';' .. basepath .. '?.lua'
 
 require 'factored'
 
