@@ -1,7 +1,7 @@
 Introduction
 ============
 
-`Read the docs<https://www.readthedocs.org/factored>`_
+`Read the docs <https://factored.readthedocs.org/en/latest/>`_
 
 Credit
 ------
