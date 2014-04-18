@@ -82,7 +82,6 @@ function encode_ip_timestamp(ip, timestamp)
     ip_chars = ip_chars .. string.char(tonumber(v))
   end
   local t = tonumber(timestamp)
-  ngx.log(ngx.ERR, t)
   local ts_chars = string.char(bit.brshift(bit.band(t, 4278190080), 24)) ..
                    string.char(bit.brshift(bit.band(t, 16711680), 16)) ..
                    string.char(bit.brshift(bit.band(t, 65280), 8)) ..
@@ -168,4 +167,9 @@ function valid_auth_tkt(settings, cookie, ip)
   end
 
   return true
+end
+
+
+function valid_auth_tkt_ret(settings, cookie, ip, ret)
+  ret['val'] = valid_auth_tkt(setting, cookie, ip)
 end

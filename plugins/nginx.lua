@@ -4,7 +4,7 @@ require 'package'
 -- add plugin directory to load path
 require 'debug'
 local basepath = debug.getinfo(1).source
-basepath = basepath:sub(2, string.len(basepath) - 7)  -- pull out actual path
+basepath = basepath:sub(2, string.len(basepath) - 9)  -- pull out actual path
 package.path = package.path .. ';' .. basepath .. '?.lua'
 
 require 'factored'
@@ -16,7 +16,6 @@ local function safe_tonumber(val)
     return val
   end
 end
-
 
 local settings = {
   secret=ngx.var.fsecret,
@@ -38,8 +37,20 @@ if settings.include_ip == 1 then
   ip = ngx.var.remote_addr
 end
 
-if valid_auth_tkt(settings, ngx.var['cookie_' .. settings.cookie_name], ip) then
-  return 1
+local cookie = ngx.var['cookie_' .. settings.cookie_name]
+ok, err = pcall(function()
+  return valid_auth_tkt(settings, cookie, ip)
+end)
+
+if ok then
+  -- at this point, the return value is actually the value returned by the
+  -- function
+  if err then
+    return 1
+  else
+    return 0
+  end
 else
+  ngx.log(ngx.ERR, 'Error checking cookie: ' .. err)
   return 0
 end

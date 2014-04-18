@@ -8,9 +8,9 @@ local settings = {
   port=8000,
   -- do we also need to provide way to override factored auth path?
   -- auth tkt cookie name
-  cookie_name='something2',
+  cookie_name='pnutbtr',
   -- auth tkt secret
-  secret='sdfsdfskdjlkj34ljk3l32l4kj23',
+  secret='secret',
   -- include ip for cookie value
   include_ip=false,
   -- manually handle cookie timeouts
@@ -48,7 +48,26 @@ function remap(request)
     remote_addr = ip
   end
 
-  if not valid_auth_tkt(settings, cookie, remote_addr) then
+  local rewrite = true
+
+  ok, err = pcall(function()
+    if cookie == nil then
+      return false
+    end
+    return valid_auth_tkt(settings, cookie.value, remote_addr)
+  end)
+
+  if ok then
+    -- at this point, the return value is actually the value returned by the
+    -- function
+    if err then
+      rewrite = false
+    end
+  else
+    print('Error checking cookie: ' .. err)
+  end
+
+  if rewrite then
     url.host = settings.host
     url.port = settings.port
     -- Rewrite the request URL. The remap plugin chain continues and other plugins
