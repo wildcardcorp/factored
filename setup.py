@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '3.0'
+version = '3.0.2'
 
 requires = [
     'PasteDeploy',
@@ -21,7 +21,7 @@ setup(name='factored',
                   "authentication to any application server.",
       long_description="%s\n%s" % (
           open("README.rst").read(),
-          open("CHANGES.txt").read()),
+          open("CHANGES.rst").read()),
       classifiers=[
           'Topic :: Internet :: WWW/HTTP :: WSGI',
           'Topic :: Internet :: WWW/HTTP :: WSGI :: Application',

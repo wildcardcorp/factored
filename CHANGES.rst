@@ -1,7 +1,7 @@
 Changelog
 =========
 
-3.0.2 (2014-04-17)
+3.0.2 (2014-04-18)
 ------------------
 
 - better error handling for web server plugins
