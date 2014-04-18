@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.0.3 (2014-04-18)
+------------------
+
+- url decode for web server plugins to properly check auth tkt
+
 3.0.2 (2014-04-18)
 ------------------
 

@@ -24,6 +24,13 @@ function string:split(sep)
   return fields
 end
 
+function url_decode(str)
+  str = string.gsub (str, "+", " ")
+  str = string.gsub (str, "%%(%x%x)",
+      function(h) return string.char(tonumber(h,16)) end)
+  str = string.gsub (str, "\r\n", "\n")
+  return str
+end
 
 function parse_cookie(cookiestr)
   local key, val, flags = cookiestr:match("%s?([^=;]+)=?([^;]*)(.*)")
@@ -128,6 +135,10 @@ function parse_ticket(settings, ticket, ip)
     end
   else
     user_data = ''
+  end
+
+  if userid ~= nil then
+    userid = url_decode(userid)
   end
 
   local expected = calculate_digest(settings, ip, timestamp, userid, tokens, user_data)
