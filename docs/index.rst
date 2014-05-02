@@ -6,11 +6,16 @@
 Welcome to factored's documentation!
 ====================================
 
+Factored is a comprehensive 2-factor authentication system that works with
+any web technology.
+
+
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
+   about
    install
    config
    users
