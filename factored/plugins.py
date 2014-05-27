@@ -1,21 +1,26 @@
-import time
-from factored.models import User
-from pyramid_simpleform import Form
-from formencode import Schema, validators
-from pyramid_mailer.message import Message
-from factored.utils import make_random_code
+from copy import deepcopy as copy
 from datetime import datetime
 from datetime import timedelta
-from factored.utils import get_google_auth_code
+from formencode import Schema, validators
+import hashlib
+import os
+from pyramid.httpexceptions import HTTPFound
+from pyramid.util import strings_differ
+from pyramid_mailer.message import Message
+from pyramid_simpleform import Form
+from pyramid_simpleform.renderers import FormRenderer
+import time
+from urlparse import urlparse, parse_qsl, urlunparse
+from urllib import urlencode
+
+from factored.models import User
+from factored.utils import CombinedDict
 from factored.utils import create_user
 from factored.utils import get_barcode_image
+from factored.utils import get_google_auth_code
 from factored.utils import get_mailer
-from pyramid.util import strings_differ
-from copy import deepcopy as copy
-import os
-from pyramid_simpleform.renderers import FormRenderer
-from factored.utils import CombinedDict
-from pyramid.httpexceptions import HTTPFound
+from factored.utils import make_random_code
+
 
 _auth_plugins = []
 
@@ -339,27 +344,92 @@ class EmailAuthPlugin(BasePlugin):
     def __init__(self, req):
         super(EmailAuthPlugin, self).__init__(req)
 
+    def submit_authentication(self):
+        urlcode = self.req.GET.get('code', None)
+        if urlcode:
+            referrer = self.req.params.get('referrer', '/')
+            remember = self.req.params.get('rem', '0')
+            remember = remember != '0'
+            urlname = self.req.params.get('u', None)
+            user = self.get_user(urlname)
+            # make sure the passed user is valid
+            if user is None:
+                self.cform.errors['code'] = \
+                    self.formtext['error']['invalid_username_code']
+                return
+            # make sure the urlcode hash matches with the user id of the user
+            #   identified from the url, generated code, and salt
+            code = user.generated_code
+            salt = self.settings.get('salt', 's4lt!necracker')
+            newhash = hashlib.sha256("%s%s%s"%(user.id, code, salt)).hexdigest()
+            if newhash != urlcode:
+                self.cform.errors['code'] = \
+                    self.formtext['error']['invalid_code']
+                return
+            # check the code (make sure it's still valid and all that)
+            #   note: even though this is comparing the same actual code value
+            #   to itself, it's still checking to see if the code timed out, etc
+            if self.check_code(user, user.generated_code):
+                userid = user.username
+                if remember:
+                    max_age = self.auth_remember_timeout
+                else:
+                    max_age = self.auth_timeout
+                auth = self.req.environ['auth']
+                headers = auth.remember(userid, max_age=max_age)
+                raise HTTPFound(location=referrer, headers=headers)
+            else:
+                self.cform.errors['code'] = \
+                    self.formtext['error']['invalid_code']
+                self.cform.data['code'] = u''
+                return
+        else:
+            super(EmailAuthPlugin, self).submit_authentication()
+
     def user_form_submitted_successfully(self, user):
         username = self.uform.data['username']
         mailer = get_mailer(self.req)
         user.generated_code = make_random_code(12)
         user.generated_code_time_stamp = datetime.utcnow()
-
         settings = self.settings
+
+        # only generate the url if it's being used
+        url = ''
+        if "{url}" in settings['body']:
+            salt = settings.get('salt', 's4lt!necracker')
+            urlparts = list(urlparse(self.req.url))
+            querystr = dict(parse_qsl(urlparts[4]))
+            querystr['code'] = hashlib.sha256(
+                "%s%s%s"%(user.id, user.generated_code, salt)) \
+                .hexdigest()
+            querystr['u'] = username
+            querystr['rem'] = settings.get('url_remember', '0')
+            querystr['rem'] = '1' if querystr['rem'] == 'True' else '0'
+            urlparts[4] = urlencode(querystr)
+            url = urlunparse(urlparts)
+
         message = {
             'recipients': [username],
-            'body': settings['body'].replace('{code}', user.generated_code),
+            'body': settings['body'].replace('{code}', user.generated_code) \
+                                    .replace('{url}', url),
             'subject': settings['subject'],
             'sender': settings['sender']
         }
         mailer.send_immediately(Message(**message))
 
-    def check_code(self, user):
+    def check_code(self, user, code=None):
         window = self.req.registry['settings']['email_auth_window']
         now = datetime.utcnow()
-        return (not strings_differ(self.cform.data['code'],
-                user.generated_code)) and (now < (
-            user.generated_code_time_stamp + timedelta(seconds=window)))
+        codetocheck = code if code else self.cform.data['code']
+        return (not strings_differ(codetocheck, user.generated_code)) \
+                and (now < (user.generated_code_time_stamp + timedelta(seconds=window)))
+
+    def render(self):
+        if self.req.GET.get('code', None):
+            self.validate_submitted = True
+            self.submit_authentication()
+
+        return super(EmailAuthPlugin, self).render()
 
 
 addFactoredPlugin(EmailAuthPlugin)
