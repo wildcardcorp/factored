@@ -345,7 +345,7 @@ class EmailAuthPlugin(BasePlugin):
         super(EmailAuthPlugin, self).__init__(req)
 
     def submit_authentication(self):
-        urlcode = self.req.params.get('code', None)
+        urlcode = self.req.GET.get('code', None)
         if urlcode:
             referrer = self.req.params.get('referrer', '/')
             remember = self.req.params.get('rem', '0')
@@ -425,7 +425,7 @@ class EmailAuthPlugin(BasePlugin):
                 and (now < (user.generated_code_time_stamp + timedelta(seconds=window)))
 
     def render(self):
-        if self.req.params.get('code', None):
+        if self.req.GET.get('code', None):
             self.validate_submitted = True
             self.submit_authentication()
 
