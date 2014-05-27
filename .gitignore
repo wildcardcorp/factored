@@ -4,3 +4,10 @@ src
 *.db
 build
 *.db
+*.pyc
+.installed.cfg
+bin
+env
+develop-eggs
+eggs
+*.egg-info

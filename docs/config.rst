@@ -51,6 +51,14 @@ em.sender
     Email authentication from address.
 em.body
     Email Authentication text body. `{code}` will be replaced with the code.
+    `{url}` will be replaced with a URL that users can use to perform the
+    authentication directly, without entering the `{code}` on the form.
+em.salt
+    Salt value used to generate parts of the `{url}` value.
+em.url_remember
+    Accepts 'True' or 'False' values. If 'True' then the generated `{url}` will
+    indicate the auth should be remembered for the `auth_remember_timeout`
+    instead of the `auth_timeout`
 pyramid. prefixed options
     Configuration passed directly into pyramid configuration.
 sqlalchemy.url
