@@ -3,6 +3,7 @@ from pyramid.httpexceptions import HTTPFound
 import urllib
 from factored.plugins import getFactoredPlugin, getFactoredPlugins
 from factored.plugins import getPluginForRequest
+from factored.utils import generate_url
 
 
 class AuthView(object):
@@ -18,7 +19,7 @@ class AuthView(object):
 def notfound(req):
     return HTTPFound(location="%s?%s" % (
         req.registry['settings']['base_auth_url'],
-        urllib.urlencode({'referrer': req.url})))
+        urllib.urlencode({'referrer': generate_url(req.path)})))
 
 
 def auth_chooser(req):
@@ -28,10 +29,10 @@ def auth_chooser(req):
     supported_types = settings['supported_auth_schemes']
     if len(supported_types) == 1:
         plugin = getFactoredPlugin(supported_types[0])
-        referrer = urllib.urlencode(
-            {'referrer': req.params.get('referrer', '')})
-        raise HTTPFound(location="%s/%s?%s" % (base_path, plugin.path,
-                                               referrer))
+        url = generate_url(base_path + '/' + plugin.path,
+                           {'referrer': req.params.get('referrer', '')})
+        raise HTTPFound(location=url)
+
     for plugin in getFactoredPlugins():
         if plugin.name in supported_types:
             auth_types.append({

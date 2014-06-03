@@ -4,6 +4,7 @@ import base64
 import struct
 import hmac
 import hashlib
+import urllib
 
 import random
 try:
@@ -148,3 +149,21 @@ def get_mailer(req):
             req.environ[FAKE_MAILER_KEY] = FakeMailer(req)
         return req.environ[FAKE_MAILER_KEY]
     return req.registry['mailer']
+
+
+def generate_url(req, path, params={}):
+    scheme = None
+    if 'X-Forwarded-Protocol' in req.headers:
+        scheme = req.headers['X-Forwarded-Protocol']
+    elif req.url.startswith('https://'):
+        scheme = 'https'
+    if scheme is None:
+        # look for HTTP_ORIGIN
+        if 'HTTP_ORIGIN' in req.environ:
+            host = req.environ['HTTP_ORIGIN']
+    else:
+        host = '%s://%s' % (scheme, req.environ['HTTP_HOST'])
+    url = '%s%s' % (host, path)
+    if params:
+        url += '?' + urllib.urlencode(params)
+    return url

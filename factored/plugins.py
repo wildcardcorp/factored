@@ -20,6 +20,7 @@ from factored.utils import get_barcode_image
 from factored.utils import get_google_auth_code
 from factored.utils import get_mailer
 from factored.utils import make_random_code
+from factored.utils import generate_url
 
 
 _auth_plugins = []
@@ -400,17 +401,16 @@ class EmailAuthPlugin(BasePlugin):
             urlparts = list(urlparse(self.req.url))
             querystr = dict(parse_qsl(urlparts[4]))
             querystr['code'] = hashlib.sha256(
-                "%s%s%s"%(user.id, user.generated_code, salt)) \
+                "%s%s%s" % (user.id, user.generated_code, salt)) \
                 .hexdigest()
             querystr['u'] = username
             querystr['rem'] = settings.get('url_remember', '0')
             querystr['rem'] = '1' if querystr['rem'] == 'True' else '0'
-            urlparts[4] = urlencode(querystr)
-            url = urlunparse(urlparts)
+            url = generate_url(self.req.path, querystr)
 
         message = {
             'recipients': [username],
-            'body': settings['body'].replace('{code}', user.generated_code) \
+            'body': settings['body'].replace('{code}', user.generated_code)
                                     .replace('{url}', url),
             'subject': settings['subject'],
             'sender': settings['sender']
