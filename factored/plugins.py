@@ -372,14 +372,16 @@ class EmailAuthPlugin(BasePlugin):
             #   identified from the url, generated code, and salt
             code = user.generated_code
             salt = self.settings.get('salt', 's4lt!necracker')
-            newhash = hashlib.sha256("%s%s%s"%(user.id, code, salt)).hexdigest()
+            newhash = hashlib.sha256(
+                "%s%s%s" % (user.id, code, salt)).hexdigest()
             if newhash != urlcode:
                 self.cform.errors['code'] = \
                     self.formtext['error']['invalid_code']
                 return
             # check the code (make sure it's still valid and all that)
             #   note: even though this is comparing the same actual code value
-            #   to itself, it's still checking to see if the code timed out, etc
+            #   to itself, it's still checking to see if the code timed out,
+            #   etc
             if self.check_code(user, user.generated_code):
                 userid = user.username
                 if remember:
@@ -431,8 +433,9 @@ class EmailAuthPlugin(BasePlugin):
         window = self.req.registry['settings']['email_auth_window']
         now = datetime.utcnow()
         codetocheck = code if code else self.cform.data['code']
-        return (not strings_differ(codetocheck, user.generated_code)) \
-                and (now < (user.generated_code_time_stamp + timedelta(seconds=window)))
+        return ((not strings_differ(codetocheck, user.generated_code))
+                and (now < (user.generated_code_time_stamp +
+                            timedelta(seconds=window))))
 
     def render(self):
         if self.req.GET.get('code', None):
