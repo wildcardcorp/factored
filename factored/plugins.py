@@ -325,7 +325,7 @@ class EmailAuthPlugin(BasePlugin):
     username_schema = EmailAuthSchema
     code_schema = EmailAuthCodeSchema
 
-    _formtext_overrides = {
+    __formtext_overrides = {
         'title': u'Email Authenticator',
         'legend': u'Authenticate through your email...',
         'username': {
@@ -340,6 +340,17 @@ class EmailAuthPlugin(BasePlugin):
             'username': u'Send mail'
         }
     }
+
+    @property
+    def _formtext_overrides(self):
+        overrides = self.__formtext_overrides.copy()
+        if "{url}" in self.settings['body']:
+            overrides['code']['desc'] = ('Provided in email sent to you in '
+                                         'addition to an email link to login'
+                                         'with instead.')
+        else:
+            overrides['code']['desc'] = 'Provided in email sent to you.'
+        return overrides
 
     def __init__(self, req):
         super(EmailAuthPlugin, self).__init__(req)
