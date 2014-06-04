@@ -19,7 +19,7 @@ class AuthView(object):
 def notfound(req):
     return HTTPFound(location="%s?%s" % (
         req.registry['settings']['base_auth_url'],
-        urllib.urlencode({'referrer': generate_url(req.path)})))
+        urllib.urlencode({'referrer': generate_url(req, req.path)})))
 
 
 def auth_chooser(req):
@@ -29,7 +29,7 @@ def auth_chooser(req):
     supported_types = settings['supported_auth_schemes']
     if len(supported_types) == 1:
         plugin = getFactoredPlugin(supported_types[0])
-        url = generate_url(base_path + '/' + plugin.path,
+        url = generate_url(req, base_path + '/' + plugin.path,
                            {'referrer': req.params.get('referrer', '')})
         raise HTTPFound(location=url)
 

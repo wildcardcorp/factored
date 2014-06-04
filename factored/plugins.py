@@ -406,7 +406,7 @@ class EmailAuthPlugin(BasePlugin):
             querystr['u'] = username
             querystr['rem'] = settings.get('url_remember', '0')
             querystr['rem'] = '1' if querystr['rem'] == 'True' else '0'
-            url = generate_url(self.req.path, querystr)
+            url = generate_url(self.req, self.req.path, querystr)
 
         message = {
             'recipients': [username],

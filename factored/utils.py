@@ -155,12 +155,16 @@ def generate_url(req, path, params={}):
     scheme = None
     if 'X-Forwarded-Protocol' in req.headers:
         scheme = req.headers['X-Forwarded-Protocol']
+    elif 'wsgi.url_scheme' in req.environ:
+        scheme = req.environ['wsgi.url_scheme']
     elif req.url.startswith('https://'):
         scheme = 'https'
     if scheme is None:
         # look for HTTP_ORIGIN
         if 'HTTP_ORIGIN' in req.environ:
             host = req.environ['HTTP_ORIGIN']
+        else:
+            host = ''
     else:
         host = '%s://%s' % (scheme, req.environ['HTTP_HOST'])
     url = '%s%s' % (host, path)
