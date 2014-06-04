@@ -21,6 +21,7 @@ from factored.utils import get_mailer
 from factored.utils import make_random_code
 from factored.utils import generate_url
 
+from sqlalchemy import func
 
 _auth_plugins = []
 
@@ -132,7 +133,8 @@ class BasePlugin(object):
         self.remember_duration = rto
 
     def get_user(self, username):
-        user = self.db_session.query(User).filter_by(username=username).first()
+        user = self.db_session.query(User).filter(
+            func.lower(User.username) == func.lower(username)).first()
         if user is None:
             if 'userfinder' in self.req.registry['settings']:
                 finder = self.req.registry['settings']['userfinder']

@@ -178,6 +178,18 @@ class TestEmailAuth(BaseTest):
         self.assertTrue(len(self.mailer.messages) == 1)
         self.assertTrue(user.generated_code in self.mailer.messages[0].body)
 
+    def test_send_mail_with_correct_username_case_insensitive(self):
+        from factored.models import User
+        resp = self.testapp.post('/auth/em', status=200, params={
+            'submit': 'Send mail',
+            'username': 'FOO@BAR.com'
+        })
+        user = self.session.query(User).filter_by(
+            username='foo@bar.com').first()
+        assert 'class="error' not in resp.body
+        self.assertTrue(len(self.mailer.messages) == 1)
+        self.assertTrue(user.generated_code in self.mailer.messages[0].body)
+
     def test_auth_correct(self):
         from factored.models import User
         self.testapp.post('/auth/em', status=200, params={
