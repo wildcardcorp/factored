@@ -348,8 +348,8 @@ class EmailAuthPlugin(BasePlugin):
         overrides = self.__formtext_overrides.copy()
         if "{url}" in self.settings['body']:
             overrides['code']['desc'] = ('Provided in email sent to you in '
-                                         'addition to an email link to login'
-                                         'with instead.')
+                                         'addition to an email link to login '
+                                         'with automatically.')
         else:
             overrides['code']['desc'] = 'Provided in email sent to you.'
         return overrides
