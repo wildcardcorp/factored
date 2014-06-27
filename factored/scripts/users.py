@@ -29,9 +29,9 @@ def add():
         session = DBSession()
         username = arguments.username
         user = create_user(username, session)
-        print 'barcode url:', get_barcode_image(username, user.secret,
-                                                settings['appname'])
-        print 'secret:', user.secret
+        print('barcode url:', get_barcode_image(username, user.secret,
+                                                settings['appname']))
+        print('secret:', user.secret)
         session.commit()
         session.close()
 
@@ -59,7 +59,7 @@ def remove():
         if len(user) > 0:
             session.delete(user[0])
         else:
-            print '"%s" user not found' % arguments.username
+            print('"%s" user not found' % arguments.username)
         session.commit()
         session.close()
 
@@ -82,7 +82,7 @@ def listusers():
         DBSession.configure(bind=engine)
         session = DBSession()
         for user in session.query(User).all():
-            print user.username
+            print(user.username)
 
 
 listuserparser = argparse.ArgumentParser(description='List user info')
@@ -108,10 +108,10 @@ def listuserinfo():
             username=arguments.username).all()
         if len(users) > 0:
             user = users[0]
-            print 'username:%s, secret: %s' % (
-                user.username, user.secret)
-            print 'bar code url:', get_barcode_image(user.username,
+            print('username:%s, secret: %s' % (
+                user.username, user.secret))
+            print('bar code url:', get_barcode_image(user.username,
                                                      user.secret,
-                                                     settings['appname'])
+                                                     settings['appname']))
         else:
-            print '"%s" user not found' % arguments.username
+            print('"%s" user not found' % arguments.username)

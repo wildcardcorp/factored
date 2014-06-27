@@ -10,7 +10,10 @@ from pyramid_mailer.message import Message
 from pyramid_simpleform import Form
 from pyramid_simpleform.renderers import FormRenderer
 import time
-from urlparse import urlparse, parse_qsl
+try:
+    from urlparse import urlparse, parse_qsl
+except ImportError:
+    from urllib.parse import urlparse, parse_qsl
 
 from factored.models import User
 from factored.utils import CombinedDict

@@ -4,7 +4,10 @@ import base64
 import struct
 import hmac
 import hashlib
-import urllib
+try:
+    from urllib import urlencode
+except:
+    from urllib.parse import urlencode
 
 import random
 try:
@@ -51,9 +54,9 @@ def generate_random_google_code(length=10):
 
 
 def make_random_code(length=255):
-    prehash = hashlib.sha1(str(get_random_string(length))).hexdigest()[:5]
+    prehash = hashlib.sha1(str(get_random_string(length)).encode('utf-8')).hexdigest()[:5]
     return hashlib.sha1(
-        prehash + str(datetime.now().microsecond)).hexdigest()[:length]
+        (prehash + str(datetime.now().microsecond)).encode('utf-8')).hexdigest()[:length]
 
 
 def get_barcode_image(username, secretkey, appname):
@@ -126,7 +129,7 @@ class FakeMailer(object):
 
     def send_immediately(self, message):
         self.messages.append(message)
-        print """To: %s
+        print("""To: %s
 From: %s
 Subject: %s
 Body: %s""" % (
@@ -134,7 +137,7 @@ Body: %s""" % (
             message.sender,
             message.subject,
             message.body
-        )
+        ))
 
     send = send_immediately
 
@@ -169,5 +172,5 @@ def generate_url(req, path, params={}):
         host = '%s://%s' % (scheme, req.environ['HTTP_HOST'])
     url = '%s%s' % (host, path)
     if params:
-        url += '?' + urllib.urlencode(params)
+        url += '?' + urlencode(params)
     return url
