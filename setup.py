@@ -4,9 +4,7 @@ version = '3.0.3'
 
 requires = [
     'PasteDeploy',
-    'PasteScript',
     'WebOb',
-    'WSGIProxy',
     'pyramid',
     'SQLAlchemy<=0.7.9',
     'pyramid_simpleform',
@@ -41,6 +39,9 @@ setup(name='factored',
           'test': [
               'WebTest',
               'pyramid_debugtoolbar'
+          ],
+          'proxy': [
+              'WSGIProxy'
           ]
       },
       test_suite="factored",

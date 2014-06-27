@@ -41,3 +41,10 @@ with default sample config::
 
 You should now have a factored server running on port 8000.
 
+
+Using proxy
+-----------
+
+Install WSGIProxy::
+
+    ./bin/easy_install WSGIProxy

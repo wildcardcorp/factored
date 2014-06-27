@@ -1,6 +1,5 @@
 from pyramid.config import Configurator
 from sqlalchemy import engine_from_config
-from wsgiproxy.exactproxy import proxy_exact_request
 from factored.auth_tkt import AuthTktAuthenticator, AuthenticationPolicy
 from factored.models import DBSession
 from factored.finders import getUserFinderPlugin
@@ -159,16 +158,22 @@ class Authenticator(object):
         return SMFilter(wrapped_app)(environ, start_response)
 
 
-class SimpleProxy(object):
+try:
+    from wsgiproxy.exactproxy import proxy_exact_request
+    class SimpleProxy(object):
 
-    def __init__(self, global_config, server, port, urlscheme=None):
-        self.server = server
-        self.port = port
-        self.scheme = urlscheme
+        def __init__(self, global_config, server, port, urlscheme=None):
+            self.server = server
+            self.port = port
+            self.scheme = urlscheme
 
-    def __call__(self, environ, start_response):
-        environ['SERVER_NAME'] = self.server
-        environ['SERVER_PORT'] = self.port
-        if self.scheme:
-            environ['wsgi.url_scheme'] = self.scheme
-        return proxy_exact_request(environ, start_response)
+        def __call__(self, environ, start_response):
+            environ['SERVER_NAME'] = self.server
+            environ['SERVER_PORT'] = self.port
+            if self.scheme:
+                environ['wsgi.url_scheme'] = self.scheme
+            return proxy_exact_request(environ, start_response)
+except ImportError:
+    class SimpleProxy(object):
+        def __init__(self, *args, **kwargs):
+            raise Exception("Must install factored with [proxy] requirement to use this.")
