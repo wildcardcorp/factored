@@ -98,9 +98,20 @@ def create_user(username, session=None):
     return user
 
 
+NO_VALUE = object()
+
+
 class CombinedDict(object):
     def __init__(self, *args):
         self.dicts = args
+
+    def __getattr__(self, name, default=NO_VALUE):
+        try:
+            return self[name]
+        except KeyError:
+            if NO_VALUE == default:
+                raise AttributeError(name)
+            return default
 
     def __getitem__(self, name):
         """
@@ -116,9 +127,7 @@ class CombinedDict(object):
                     return val
         if founddicts:
             return CombinedDict(*founddicts)
-        raise KeyError
-
-    __getattr__ = __getitem__
+        raise KeyError(name)
 
 
 class FakeMailer(object):
