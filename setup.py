@@ -6,7 +6,7 @@ requires = [
     'PasteDeploy',
     'WebOb',
     'pyramid',
-    'SQLAlchemy<=0.7.9',
+    'SQLAlchemy',
     'pyramid_simpleform',
     'pyramid_mailer',
     'argparse',
