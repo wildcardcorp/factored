@@ -99,6 +99,12 @@ class Authenticator(object):
         config.registry['app'] = self
 
         config.scan()
+        self.config = config
+        self.registry = self.config.registry
+        try:
+            self.app.config.registry['factored'] = self
+        except:
+            pass
         self.pyramid = config.make_wsgi_app()
 
     def setup_plugins(self, config, settings):
