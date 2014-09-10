@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '3.0.3'
+version = '3.0.4'
 
 requires = [
     'PasteDeploy',
@@ -8,7 +8,7 @@ requires = [
     'WebOb',
     'WSGIProxy',
     'pyramid',
-    'SQLAlchemy<=0.7.9',
+    'SQLAlchemy',
     'pyramid_simpleform',
     'pyramid_mailer',
     'argparse',

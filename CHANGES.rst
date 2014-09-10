@@ -1,6 +1,12 @@
 Changelog
 =========
 
+3.0.4 (2014-09-10)
+------------------
+
+- do not require specific version of sqlalchemy
+
+
 3.0.3 (2014-04-18)
 ------------------
 
