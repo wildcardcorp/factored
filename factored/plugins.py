@@ -15,18 +15,24 @@ try:
 except ImportError:
     from urllib.parse import urlparse, parse_qsl
 
-from factored.models import User
 from factored.utils import CombinedDict
-from factored.utils import create_user
 from factored.utils import get_barcode_image
 from factored.utils import get_google_auth_code
 from factored.utils import get_mailer
 from factored.utils import make_random_code
 from factored.utils import generate_url
 
-from sqlalchemy import func
 
 _auth_plugins = []
+
+
+def safe_headers(values):
+    headers = []
+    for name, value in values:
+        if isinstance(value, unicode):
+            value = value.encode('utf8')
+        headers.append((name, value))
+    return headers
 
 
 def nested_update(base, override):
@@ -112,7 +118,6 @@ class BasePlugin(object):
 
     def __init__(self, req):
         self.req = req
-        self.db_session = req.sm[req.registry['settings']['db_session_id']]
         self.uform = Form(req, schema=self.username_schema)
         self.cform = Form(req, schema=self.code_schema)
         self.formtext = nested_update(copy(self._formtext),
@@ -135,14 +140,21 @@ class BasePlugin(object):
             rto = '%i minutes' % rto
         self.remember_duration = rto
 
+    @property
+    def app(self):
+        return self.req.registry['app']
+
+    @property
+    def db(self):
+        return self.app.db
+
     def get_user(self, username):
-        user = self.db_session.query(User).filter(
-            func.lower(User.username) == func.lower(username)).first()
+        user = self.db.get_user(self.req, username)
         if user is None:
             if 'userfinder' in self.req.registry['settings']:
                 finder = self.req.registry['settings']['userfinder']
                 if finder(username):
-                    return create_user(username, session=self.db_session)
+                    return self.db.create_user(self.req, username)
         return user
 
     def check_code(self, user):
@@ -237,7 +249,7 @@ class BasePlugin(object):
                     else:
                         max_age = self.auth_timeout
                     auth = self.req.environ['auth']
-                    headers = auth.remember(userid, max_age=max_age)
+                    headers = safe_headers(auth.remember(userid, max_age=max_age))  # noqa
                     referrer = self.cform.data.get('referrer')
                     if not referrer:
                         referrer = '/'
@@ -337,7 +349,7 @@ class EmailAuthPlugin(BasePlugin):
             'label': u'Email',
             'desc': u'Email you signed up with. Should be '
                     u'the same as the username.'
-            },
+        },
         'code': {
             'desc': u'Provided in the email sent to you.'
         },
@@ -394,7 +406,7 @@ class EmailAuthPlugin(BasePlugin):
                 else:
                     max_age = self.auth_timeout
                 auth = self.req.environ['auth']
-                headers = auth.remember(userid, max_age=max_age)
+                headers = safe_headers(auth.remember(userid, max_age=max_age))
                 raise HTTPFound(location=referrer, headers=headers)
             else:
                 self.cform.errors['code'] = \
@@ -409,6 +421,8 @@ class EmailAuthPlugin(BasePlugin):
         mailer = get_mailer(self.req)
         user.generated_code = make_random_code(12)
         user.generated_code_time_stamp = datetime.utcnow()
+        # save it
+        self.db.save(self.req, user)
         settings = self.settings
 
         # only generate the url if it's being used

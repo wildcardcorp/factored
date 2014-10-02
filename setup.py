@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '3.0.5'
+version = '4.0a1'
 
 requires = [
     'PasteDeploy',
@@ -45,21 +45,21 @@ setup(name='factored',
           ]
       },
       test_suite="factored",
-      entry_points="""
-      # -*- Entry points: -*-
-      [paste.app_factory]
-      simpleproxy = factored.app:SimpleProxy
-      main = factored.app:Authenticator
-
-      [paste.filter_app_factory]
-      main = factored.app:Authenticator
-      sm = factored.sm:make_sm
-
-      [console_scripts]
-      factored_initializedb = factored.scripts.initializedb:main
-      factored_adduser = factored.scripts.users:add
-      factored_removeuser = factored.scripts.users:remove
-      factored_listusers = factored.scripts.users:listusers
-      factored_listuserinfo = factored.scripts.users:listuserinfo
-      """,
-      )
+      entry_points={
+          'paste.app_factory': [
+              'simpleproxy = factored.app:SimpleProxy',
+              'main = factored.app:Authenticator'],
+          'paste.filter_app_factory': [
+              'main = factored.app:Authenticator',
+              'sm = factored.sm:make_sm'],
+          'console_scripts': [
+              'factored_initializedb = factored.scripts.initializedb:main',
+              'factored_adduser = factored.scripts.users:add',
+              'factored_removeuser = factored.scripts.users:remove',
+              'factored_listusers = factored.scripts.users:listusers',
+              'factored_listuserinfo = factored.scripts.users:listuserinfo'
+          ],
+          'factored.db_factory': [
+              'sql = factored.sql:factory'
+          ]
+      })

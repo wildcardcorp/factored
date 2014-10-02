@@ -1,7 +1,5 @@
 from pyramid.config import Configurator
-from sqlalchemy import engine_from_config
 from factored.auth_tkt import AuthTktAuthenticator, AuthenticationPolicy
-from factored.models import DBSession
 from factored.finders import getUserFinderPlugin
 from factored import TEMPLATE_CUSTOMIZATIONS
 import os
@@ -10,6 +8,8 @@ from factored import subscribers
 subscribers  # pyflakes
 from factored.request import Request
 from factored.sm import SMFilter
+
+from pkg_resources import iter_entry_points
 
 
 def _tolist(val):
@@ -49,6 +49,10 @@ def normalize_settings(settings):
     return settings
 
 
+db_factories = dict([(i.name, i.load()) for i in iter_entry_points(
+                     group='factored.db_factory', name=None)])
+
+
 class Authenticator(object):
 
     def __init__(self, *args, **settings):
@@ -60,14 +64,10 @@ class Authenticator(object):
         self.initialize_settings(app, settings)
 
         # db configuration
-        engine = engine_from_config(settings, 'sqlalchemy.')
-        configure_db = settings.pop('configure_db', 'true').lower() == 'true'
-
-        if configure_db:
-            DBSession.configure(bind=engine)
-            self.db_session_id = 'f'
-        else:
-            self.db_session_id = settings.pop('db_session_id')
+        db_factory_name = settings.get('db_factory_name', 'sql')
+        if db_factory_name not in db_factories:
+            raise Exception("Invalid db_factory_name: %s" % db_factory_name)
+        settings['db_session_id'], self.db = db_factories[db_factory_name](settings, self)  # noqa
 
         self.setup_autouserfinder(settings)
 
@@ -166,6 +166,7 @@ class Authenticator(object):
 
 try:
     from wsgiproxy.exactproxy import proxy_exact_request
+
     class SimpleProxy(object):
 
         def __init__(self, global_config, server, port, urlscheme=None):
@@ -182,4 +183,5 @@ try:
 except ImportError:
     class SimpleProxy(object):
         def __init__(self, *args, **kwargs):
-            raise Exception("Must install factored with [proxy] requirement to use this.")
+            raise Exception("Must install factored with [proxy] "
+                            "requirement to use this.")

@@ -1,13 +1,24 @@
 from sqlalchemy.exc import InterfaceError
+import threading
+
+
+_local = threading.local()
 
 key = 'SM'
 skey = 'SM.sessions'
 
-_registered_session_factories = {}
+_registered_sessions = {}
+
+
+def _getRegisteredSessions():
+    return _registered_sessions
+    #if not hasattr(_local, 'data'):
+    #    _local.data = {}
+    #return _local.data
 
 
 def registerSession(name, Session):
-    _registered_session_factories[name] = Session
+    _getRegisteredSessions()[name] = Session
 
 
 def getSessionManager(environ):
@@ -15,6 +26,16 @@ def getSessionManager(environ):
 
 
 class SM(object):
+    """
+    yes, I know this is sort of wonky...
+
+    Sooo.. what's the point?
+
+    Well, I have apps that I write which have multiple factored instances
+    and I need a way to make them all our together okay.
+
+    So this allows me to jungle the different app sessions.
+    """
 
     def __init__(self, environ):
         self.environ = environ
@@ -23,28 +44,31 @@ class SM(object):
         self.sessions = environ[skey]
 
     def __getattr__(self, name):
-        if name not in _registered_session_factories:
+        if name not in _getRegisteredSessions():
             raise AttributeError
         if name not in self.sessions:
-            self.sessions[name] = _registered_session_factories[name]()
+            self.sessions[name] = _getRegisteredSessions()[name]
         return self.sessions[name]
 
     __getitem__ = __getattr__
 
     def commit(self):
         for session in self.sessions.values():
-            session.commit()
+            if hasattr(session, 'commit'):
+                session.commit()
 
     def rollback(self):
         for session in self.sessions.values():
             try:
-                session.rollback()
+                if hasattr(session, 'rollback'):
+                    session.rollback()
             except InterfaceError:
                 pass
 
     def close(self):
         for session in self.sessions.values():
-            session.close()
+            if hasattr('session', 'close'):
+                session.close()
 
 
 class SMFilter(object):
