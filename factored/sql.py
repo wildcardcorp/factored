@@ -38,4 +38,4 @@ def factory(settings, app):
         # well... if you have multiple factored wsgi instances running
         # this allows you to change between the connection objects
         db_session_id = settings.pop('db_session_id')
-    return db_session_id, DBSession
+    return db_session_id, DB()

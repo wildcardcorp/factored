@@ -47,7 +47,10 @@ class SM(object):
         if name not in _getRegisteredSessions():
             raise AttributeError
         if name not in self.sessions:
-            self.sessions[name] = _getRegisteredSessions()[name]
+            session = _getRegisteredSessions()[name]
+            if callable(session):
+                session = session()
+            self.sessions[name] = session
         return self.sessions[name]
 
     __getitem__ = __getattr__
