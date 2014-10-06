@@ -14,7 +14,7 @@
         <hr>
 
         <div tal:replace="structure python: render('abovecontent.pt')" />
-        <div class="jumbotron" tal:content="structure python: templates.render(content_renderer)" />
+        <div tal:content="structure python: templates.render(content_renderer)" />
         <div tal:replace="structure python: render('belowcontent.pt')" />
 
         <hr>
