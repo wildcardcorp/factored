@@ -104,4 +104,6 @@ class AuthTktAuthenticator(object):
             self.environ['factored.identity'] = identity
             # set the REMOTE_USER
             self.environ['REMOTE_USER'] = identity
+            # also set a header for username
+            self.environ['HTTP_FACTORED_USER'] = identity
             return identity

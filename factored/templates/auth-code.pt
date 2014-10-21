@@ -8,7 +8,6 @@
   <p class="help-block">
     ${formtext.code.desc}
   </p>
-  </div>
 </div>
 <div class="form-group">
   <div class="checkbox">
