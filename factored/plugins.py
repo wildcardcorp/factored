@@ -207,7 +207,7 @@ class BasePlugin(object):
         self.validate_submitted = True
         self.cform.validate()
         self.cform.errors['code'] = self.error_code_reminder
-        username = self.cform.data['username']
+        username = self.cform.data['username'].lower()
         user = self.get_user(username)
         if 'username' not in self.cform.errors and user is not None:
             self.send_code_reminder(user)
@@ -219,7 +219,7 @@ class BasePlugin(object):
 
     def submit_user_form(self):
         if self.uform.validate():
-            username = self.uform.data['username']
+            username = self.uform.data['username'].lower()
             self.cform.data['username'] = username
             user = self.get_user(username)
             if user is None:
@@ -237,13 +237,13 @@ class BasePlugin(object):
     def submit_authentication(self):
         self.validate_submitted = True
         if self.cform.validate():
-            user = self.get_user(self.cform.data['username'])
+            user = self.get_user(self.cform.data['username'].lower())
             if user is None:
                 self.cform.errors['code'] = \
                     self.formtext['error']['invalid_username_code']
             else:
                 if self.check_code(user):
-                    userid = self.cform.data['username']
+                    userid = self.cform.data['username'].lower()
                     if self.cform.data['remember']:
                         max_age = self.auth_remember_timeout
                     else:
