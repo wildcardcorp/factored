@@ -20,6 +20,11 @@ class TemplateRendererFactory(object):
         self.context = context
         self.req = req
         self.customizations = req.registry[TEMPLATE_CUSTOMIZATIONS]
+        if not self.customizations and 'app' in req.registry:
+            try:
+                self.customizations = self.req.registry['app'].app.config.registry[TEMPLATE_CUSTOMIZATIONS]  # noqa
+            except:
+                pass
 
     def render(self, tmpl, package=None):
         try:

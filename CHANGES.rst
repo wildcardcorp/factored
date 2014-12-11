@@ -1,6 +1,18 @@
 Changelog
 =========
 
+4.0a3 (2014-12-11)
+------------------
+
+- fix template customization registration
+
+- add factored header
+
+- upgrade bootstrap
+
+- be able to plug in different db backends
+
+
 3.0.5 (2014-09-10)
 ------------------
 
