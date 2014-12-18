@@ -17,7 +17,7 @@ class DB(object):
     def create_user(self, req, username):
         db = req.sm[req.registry.settings['db_session_id']]
         secret = generate_random_google_code()
-        user = User(username=username, secret=secret)
+        user = User(username=username.lower(), secret=secret)
         db.add(user)
         return user
 

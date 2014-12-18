@@ -52,6 +52,7 @@ class EmailDomainFinderPlugin(object):
         self.valid_domains = app._tolist(valid_domains)
 
     def __call__(self, email):
+        email = email.lower()
         for valid in self.valid_domains:
             if email.endswith('@' + valid):
                 return True

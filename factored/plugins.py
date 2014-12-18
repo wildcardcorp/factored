@@ -149,7 +149,7 @@ class BasePlugin(object):
         return self.app.db
 
     def get_user(self, username):
-        user = self.db.get_user(self.req, username)
+        user = self.db.get_user(self.req, username.lower())
         if user is None:
             if 'userfinder' in self.req.registry['settings']:
                 finder = self.req.registry['settings']['userfinder']
@@ -379,7 +379,7 @@ class EmailAuthPlugin(BasePlugin):
             remember = self.req.params.get('rem', '0')
             remember = remember != '0'
             urlname = self.req.params.get('u', None)
-            user = self.get_user(urlname)
+            user = self.get_user(urlname.lower())
             # make sure the passed user is valid
             if user is None:
                 self.cform.errors['code'] = \
