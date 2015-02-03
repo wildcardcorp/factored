@@ -15,7 +15,7 @@ Install
 
 - copy ats plugin directory to where you want to configure it
 - configure plugin directory/factored.lua settings to match factored settings
-- map http://www.foobar.com/ http://127.0.0.1:8080/ @plugin=ts-lua.so @pparam=/path/to/ats/plugin/factored.lua
+- map http://www.foobar.com/ http://127.0.0.1:8080/ @plugin=lua.so @pparam=/path/to/ats/plugin/factored.lua
 
 
 TODO
