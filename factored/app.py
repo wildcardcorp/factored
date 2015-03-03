@@ -73,6 +73,11 @@ class Authenticator(object):
 
         # start pyramid application configuration
         config = Configurator(settings=settings, request_factory=Request)
+        try:
+            import pyramid_chameleon  # noqa
+            config.include('pyramid_chameleon')
+        except ImportError:
+            pass
 
         self.setup_plugins(config, settings)
 

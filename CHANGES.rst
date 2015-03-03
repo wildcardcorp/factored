@@ -1,6 +1,11 @@
 Changelog
 =========
 
+4.0.1 (unreleased)
+------------------
+
+- pyramid 1.5 compatibility
+
 4.0a3 (2014-12-11)
 ------------------
 

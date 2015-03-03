@@ -1,4 +1,4 @@
-from webob.cookies import RequestCookies
+from webob.request import BaseRequest as Request
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authentication import AuthTktCookieHelper
 try:
@@ -61,39 +61,12 @@ class AuthenticationPolicy(AuthTktAuthenticationPolicy):
         self.debug = debug
 
 
-class FakeRequest(object):
-    """
-    So we don't have to create webob request object if
-    they're not logged in and the request just gets
-    passed along
-    """
-
-    good_names = ('environ', 'cookies')
-
-    def __init__(self, environ):
-        self.environ = environ
-        self.cookies = RequestCookies(environ)
-
-    def __getattr__(self, name, default=_marker):
-        if name in self.good_names:
-            return self.__dict__[name]
-        try:
-            return self.environ[name]
-        except KeyError:
-            if default != _marker:
-                return default
-            raise AttributeError
-
-    def __getitem__(self, name):
-        return self.environ[name]
-
-
 class AuthTktAuthenticator(object):
 
     def __init__(self, policy, environ):
         self.policy = policy
         self.environ = environ
-        self.request = FakeRequest(environ)
+        self.request = Request(environ)
 
     def remember(self, principal, **kw):
         return self.policy.remember(self.request, principal, **kw)
