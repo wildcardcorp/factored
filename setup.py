@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '4.0a4'
+version = '4.0.1'
 
 requires = [
     'PasteDeploy',
