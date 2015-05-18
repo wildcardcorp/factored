@@ -199,7 +199,7 @@ class BasePlugin(object):
 
     @property
     def requesting_code_reminder(self):
-        cm = self.formtext['button']['codereminder']
+        cm = self.combined_formtext['button']['codereminder']
         acm = self.allow_code_reminder
         return self.req.POST.get('submit', '') == cm and acm
 
@@ -215,7 +215,7 @@ class BasePlugin(object):
     @property
     def requesting_user_form(self):
         return self.req.POST.get('submit', '') == \
-            self.formtext['button']['username']
+            self.combined_formtext['button']['username']
 
     def submit_user_form(self):
         if self.uform.validate():
@@ -224,7 +224,7 @@ class BasePlugin(object):
             user = self.get_user(username)
             if user is None:
                 self.uform.errors['username'] = \
-                    self.formtext['error']['invalid_username']
+                    self.combined_formtext['error']['invalid_username']
             else:
                 self.send_submitted = True
                 self.user_form_submitted_successfully(user)
@@ -232,7 +232,7 @@ class BasePlugin(object):
     @property
     def requesting_authentication(self):
         return self.req.POST.get('submit', '') == \
-            self.formtext['button']['authenticate']
+            self.combined_formtext['button']['authenticate']
 
     def submit_authentication(self):
         self.validate_submitted = True
@@ -240,7 +240,7 @@ class BasePlugin(object):
             user = self.get_user(self.cform.data['username'].lower())
             if user is None:
                 self.cform.errors['code'] = \
-                    self.formtext['error']['invalid_username_code']
+                    self.combined_formtext['error']['invalid_username_code']
             else:
                 if self.check_code(user):
                     userid = self.cform.data['username'].lower()
@@ -256,7 +256,7 @@ class BasePlugin(object):
                     raise HTTPFound(location=referrer, headers=headers)
                 else:
                     self.cform.errors['code'] = \
-                        self.formtext['error']['invalid_code']
+                        self.combined_formtext['error']['invalid_code']
                     self.cform.data['code'] = u''
 
     def render(self):
@@ -383,7 +383,7 @@ class EmailAuthPlugin(BasePlugin):
             # make sure the passed user is valid
             if user is None:
                 self.cform.errors['code'] = \
-                    self.formtext['error']['invalid_username_code']
+                    self.combined_formtext['error']['invalid_username_code']
                 return
             # make sure the urlcode hash matches with the user id of the user
             #   identified from the url, generated code, and salt
@@ -393,7 +393,7 @@ class EmailAuthPlugin(BasePlugin):
                 "%s%s%s" % (user.id, code, salt)).hexdigest()
             if newhash != urlcode:
                 self.cform.errors['code'] = \
-                    self.formtext['error']['invalid_code']
+                    self.combined_formtext['error']['invalid_code']
                 return
             # check the code (make sure it's still valid and all that)
             #   note: even though this is comparing the same actual code value
@@ -410,7 +410,7 @@ class EmailAuthPlugin(BasePlugin):
                 raise HTTPFound(location=referrer, headers=headers)
             else:
                 self.cform.errors['code'] = \
-                    self.formtext['error']['invalid_code']
+                    self.combined_formtext['error']['invalid_code']
                 self.cform.data['code'] = u''
                 return
         else:
