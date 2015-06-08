@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '4.0.2'
+version = '4.0.3'
 
 requires = [
     'WebOb',
