@@ -220,7 +220,7 @@ An example to follow if you're not using a git checkout::
     mail.port = 25
 
     [server:main]
-    use = egg:Paste#http
+    use = egg:waitress#main
     # Change to 0.0.0.0 to make public:
     host = 127.0.0.1
     port = 8000

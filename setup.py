@@ -3,7 +3,6 @@ from setuptools import setup, find_packages
 version = '4.0.2'
 
 requires = [
-    'PasteDeploy',
     'WebOb',
     'pyramid',
     'SQLAlchemy',
