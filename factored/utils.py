@@ -196,4 +196,4 @@ def create_message_id(_id=''):
         _id = '%s-%s' % (
             str(time.time()),
             get_random_string(20))
-    return '%s@%s' % (_id, domain)
+    return '<%s@%s>' % (_id, domain)
