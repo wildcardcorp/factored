@@ -1,9 +1,13 @@
-import time
-from datetime import datetime
 import base64
-import struct
-import hmac
+from datetime import datetime
+from hashlib import sha256 as sha
 import hashlib
+import hmac
+import struct
+import time
+
+from pyramid.threadlocal import get_current_registry
+
 try:
     from urllib import urlencode
 except:
@@ -15,8 +19,6 @@ try:
     using_sysrandom = True
 except NotImplementedError:
     using_sysrandom = False
-
-from hashlib import sha256 as sha
 
 
 # generated when process started, hard to guess
@@ -183,3 +185,15 @@ def generate_url(req, path, params={}):
     if params:
         url += '?' + urlencode(params)
     return url
+
+
+def create_message_id(_id=''):
+    registry = get_current_registry()
+    domain = 'localhost'
+    if registry:
+        domain = registry.settings.get('mail.domain', domain)
+    if not _id:
+        _id = '%s-%s' % (
+            str(time.time()),
+            get_random_string(20))
+    return '%s@%s' % (_id, domain)

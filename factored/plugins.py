@@ -21,7 +21,7 @@ from factored.utils import get_google_auth_code
 from factored.utils import get_mailer
 from factored.utils import make_random_code
 from factored.utils import generate_url
-
+from factored.utils import create_message_id
 
 _auth_plugins = []
 
@@ -310,6 +310,9 @@ class GoogleAuthPlugin(BasePlugin):
         appname = self.req.registry['settings']['appname']
         message['body'] = message['body'].replace(
             '{code}', get_barcode_image(username, user.secret, appname))
+        message['extra_headers'] = {
+            'Message-ID': create_message_id()
+        }
         mailer.send_immediately(Message(**message))
 
     def check_code(self, user):
@@ -444,7 +447,10 @@ class EmailAuthPlugin(BasePlugin):
             'body': settings['body'].replace('{code}', user.generated_code)
                                     .replace('{url}', url),
             'subject': settings['subject'],
-            'sender': settings['sender']
+            'sender': settings['sender'],
+            'extra_headers': {
+                'Message-ID': create_message_id()
+            }
         }
         mailer.send_immediately(Message(**message))
 
