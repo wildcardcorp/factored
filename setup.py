@@ -9,7 +9,8 @@ requires = [
     'pyramid_simpleform',
     'pyramid_mailer',
     'argparse',
-    'pyramid_tm'
+    'pyramid_tm',
+    'pyramid_chameleon'
 ]
 
 setup(name='factored',
