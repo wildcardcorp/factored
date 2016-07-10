@@ -16,6 +16,7 @@
 --
 factored_settings = {
   -- the HOST and PORT Factored is running on
+  scheme='http',
   host='127.0.0.1',
   port=8000,
 
@@ -120,6 +121,7 @@ function _do_remap()
     ts.hook(TS_LUA_HOOK_SEND_REQUEST_HDR, send_request)
 
     -- remap the upstream to point at the factored instance
+    ts.client_request.set_url_scheme(factored_settings.scheme)
     ts.client_request.set_url_host(factored_settings.host)
     ts.client_request.set_url_port(factored_settings.port)
     return TS_LUA_REMAP_DID_REMAP
