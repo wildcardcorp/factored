@@ -76,9 +76,13 @@ addUserFinderPlugin(EmailDomainFinderPlugin)
 
 
 # Should handle:
-#   - LDAPS
-#   - STARTTLS
+#   - LDAPS (or no ldap, can disable certificate checkcs as well)
+#   - STARTTLS (or not)
 #   - simple bind (bind user DN and password)
+#
+# All this user finder does is connect, bind with an account that can search
+# the specified base_dn, and then search for a _single_ result in which the
+# given username matches the value of the username_attr on the object
 #
 # example values:
 #   conn_string: ldaps://example.com
@@ -86,23 +90,27 @@ addUserFinderPlugin(EmailDomainFinderPlugin)
 #   bind_dn: cn=test,ou=users,dc=example,dc=com
 #   bind_pw: abc123
 #   base_dn: ou=users,dc=example,dc=com
-#   user_id_attr: sAMAccountName
+#   username_attr: mail
 #   lookup_timeout: 60
 class LDAPUserFinderPlugin(object):
     name = "LDAP Users"
 
-    def __init__(self, connstring, starttls, bind_dn, bind_pw, base_dn,
-                 user_id_attr, lookup_timeout):
-        self.conn_string = connstring
-        self.starttls = starttls
+    def __init__(self, conn_string, check_certificate, starttls, bind_dn, bind_pw, base_dn,
+                 username_attr, lookup_timeout):
+        self.conn_string = conn_string
+        self.check_certificate = check_certificate.lower().strip() == "true"
+        self.starttls = starttls.lower().strip() == "true"
         self.bind_dn = bind_dn
         self.bind_pw = bind_pw
         self.base_dn = base_dn
-        self.user_id_attr = user_id_attr
+        self.username_attr = username_attr
         self.lookup_timeout = lookup_timeout
 
     @property
     def conn(self):
+        if not self.check_certificate:
+            ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
+
         conn = ldap.initialize(self.conn_string)
         if self.starttls:
             try:
@@ -131,22 +139,25 @@ class LDAPUserFinderPlugin(object):
             return None
         return conn
 
-    def __call__(self, userid):
+    def __call__(self, username):
         conn = self.conn
         if not conn:
             return False
 
         found = False
         try:
-            userfilter = "({}={})".format(self.user_id_attr, userid)
+            userfilter = "({}={})".format(self.username_attr, username)
             results = conn.search_st(
                 self.base_dn,
                 ldap.SCOPE_SUBTREE,
                 userfilter,
-                attrs=[self.user_id_attr])
+                attrlist=[self.username_attr])
             if len(results) > 0:
-                found = True
-        except LDAPError as e:
+                if len(results) > 1:
+                    logger.error("more than one user found with that username")
+                else:
+                    found = True
+        except ldap.LDAPError as e:
             logger.error("LDAP error when performing user lookup")
             if type(e.message) == dict and e.message.has_key('desc'):
                 logger.error(e.message['desc'])
@@ -159,5 +170,5 @@ class LDAPUserFinderPlugin(object):
         return found
 
 # LDAP User Finder is a WIP so disabled for now
-#if LDAP_AVAILABLE:
-#    addUserFinderPlugin(LDAPUserFinderPlugin)
+if LDAP_AVAILABLE:
+    addUserFinderPlugin(LDAPUserFinderPlugin)

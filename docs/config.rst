@@ -125,6 +125,28 @@ autouserfinder.valid_domains
     List of valid domains to automatically create users for.
 
 
+autouserfinder LDAP configuration options
+-----------------------------------------
+
+autouserfinder.conn_string
+    LDAP connection string, IE 'ldaps://127.0.0.1:636'
+autouserfinder.check_certificate
+    if [true] then the LDAPS SSL certificate is checked for validity
+autouserfinder.starttls
+    if [true] then STARTTLS is attempted
+autouserfinder.bind_dn
+    DN of the bind user, IE 'cn=binduser,cn=Users,dc=example,dc=com'
+autouserfinder.bind_pw
+    Password for the Bind DN
+autouserfinder.base_dn
+    Base DN to perform search for users on, IE 'cn=Users,dc=example,dc=com'
+autouserfinder.username_attr
+    This will typically be 'mail' or another attribute that stores an email
+    address for the user
+autouserfinder.lookup_timeout
+    Number of seconds before an LDAP search will timeout
+
+
 Nginx Example Configuration with proxying
 -----------------------------------------
 An example setup with nginx and load balancing::

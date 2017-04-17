@@ -18,3 +18,17 @@ info@wildcardcorp.com
    :align: right
    
 
+
+
+Notes on Requirements
+---
+If you wish to use the LDAP auto user finder, then you need:
+
+    * `python-ldap` python library
+    * `libldap2-dev` system library
+    * `libsasl2-dev` system library
+
+If you wish to use sqlite (IE to get the default dev settings to work), then
+you need:
+
+    * `libsqlite2-dev` system library
