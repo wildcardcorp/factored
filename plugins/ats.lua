@@ -8,7 +8,8 @@
 --
 --  See the documentation for more detailed info.
 --
---  Below is an example config file:
+--  Below is an example config file (note, "below" includes all content until
+--  the end of the multi-line comment):
 
 --
 --  These should match your factored settings (IE the values in your INI
@@ -21,24 +22,42 @@ factored_settings = {
   port=8000,
 
   -- AUTH TKT settings
-  cookie_name='pnutbtr',
-  secret='secret',
+  cookie_name='your_auth_tkt_cookie_name',
+  secret='your_auth_tkt_secret_here',
   include_ip=false, -- [true] to include IP in cookie value
   timeout=false, -- [true] to manually handle cookie timeouts
 
   -- PLUGIN directory -- by default factored has a "plugins" directory
   -- which contains several lua files that are necessary. This directory
   -- should contain "ats.lua", "factored.lua", "bit.lua", and "sha.lua"
-  basepath='/opt/factored/src/plugins/'
+  basepath='/path/to/factored/plugins/'
 }
 
--- this needs to be in your custom settings file, and probably doesn't
--- need to be modified.
+------------------------------------------------------------------------------
+-- ## PAST THIS POINT YOU SHOULDN'T NEED TO MODIFY ###########################
+-- (but it is required)
+--
 require 'package'
 if string.find(package.path, factored_settings.basepath) == nil then
     ts.add_package_path(factored_settings.basepath .. '?.lua')
 end
-require 'ats'
+ats = require 'ats'
+
+function do_remap()
+  ts.http.set_debug(0)
+  local status, ret = pcall(ats.do_remap)
+  -- if the pcall was successful, then we should be able to return
+  -- the result of the pcall 
+  if status then
+    return ret
+  else
+    -- this is a special case, if something went wrong in the normal
+    -- remap process, the url will be intercepted with a 403 message
+    -- if you want a customized message, put your own intercept function here
+    ts.http.intercept(ats.factored_failed) 
+    return 0
+  end
+end
 
 --]]
 
@@ -53,28 +72,6 @@ if string.find(package.path, factored_settings.basepath) == nil then
 end
 require 'factored'
 
-
--- these are used to "cache" client request values so they can be used to
--- communicate correctly with factored through HTTP headers
-local pristine_scheme = ''
-local pristine_host = ''
-local pristine_port = ''
-
-
---
--- modify the request sent to the upstream server to reset the headers used
--- by Factored to generate proper URL's for it's internal use
---
-function send_request()
-    ts.server_request.header['X-Forwarded-Protocol'] = pristine_scheme
-    final_host = pristine_host
-    -- only add the port if it's non-standard. It would make ugly url's,
-    -- and likely urls that are not expected otherwise
-    if pristine_port ~= '80' and pristine_port ~= '443' then
-        final_host = final_host .. ':' .. pristine_port
-    end
-    ts.server_request.header['Host'] = final_host
-end
 
 --
 -- verify the AUTH TKT cookie is valid, and then either interdict the
@@ -91,34 +88,48 @@ function _do_remap()
     remote_addr = ip
   end
 
-  local rewrite = true
+  local intercept_with_factored = true
 
-  ok, err = pcall(function()
+  ok, isvalid = pcall(function()
     if cookie == nil then
+      -- no cookie at all means no valid auth_tkt :)
       return false
     end
     return valid_auth_tkt(factored_settings, cookie.value, remote_addr)
   end)
 
   if ok then
-    -- at this point, the return value is actually the value returned by the
-    -- function
-    if err then
-      rewrite = false
+    -- if the pcall was successful, then the second value returned is
+    -- the result of the method called
+    -- thus, err would be true/false depending on whether or not the auth_tkt
+    -- was determined to be valid.
+    -- if the auth_tkt is valid, then there is no need to intercept with factored
+    if isvalid then
+      intercept_with_factored = false
     end
   else
-    print('Error checking cookie: ' .. err)
+    -- in this case, isvalid will be an error message captured by pcall
+    ts.debug('Error checking cookie: ' .. isvalid)
+    return 0
   end
+
+  -- original upstream values
+  local pristine_host = ts.client_request.get_url_host()
+  local pristine_port = ts.client_request.get_url_port()
+  local pristine_scheme = ts.client_request.get_url_scheme()
 
   -- this is where the request is interdicted, if the user is not
   -- determined to be authorized
-  if rewrite then
-    -- store clean values from the client url and then setup
-    -- a hook to alter the headers sent to the upstream server
-    pristine_host = ts.client_request.get_url_host()
-    pristine_port = ts.client_request.get_url_port()
-    pristine_scheme = ts.client_request.get_url_scheme()
-    ts.hook(TS_LUA_HOOK_SEND_REQUEST_HDR, send_request)
+  if intercept_with_factored then
+    -- add headers to identify the original upstream to factored
+    ts.server_request.header['X-Forwarded-Protocol'] = pristine_scheme
+    final_host = pristine_host
+    -- only add the port if it's non-standard. It would make ugly url's,
+    -- and likely urls that are not expected otherwise
+    if pristine_port ~= '80' and pristine_port ~= '443' then
+        final_host = final_host .. ':' .. pristine_port
+    end
+    ts.server_request.header['Host'] = final_host
 
     -- remap the upstream to point at the factored instance
     ts.client_request.set_url_scheme(factored_settings.scheme)
@@ -140,16 +151,8 @@ function factored_failed()
   ts.say(resp)
 end
 
---
--- attempt to interdict the request, if necessary if there was an unhandled
--- error of some sort, prevent access to the upstream.
---
-function do_remap()
-  local status, ret = pcall(_do_remap)
-  if status then
-    return ret
-  else
-    ts.http.intercept(factored_failed) 
-    return 0
-  end
-end
+
+return {
+    factored_failed=factored_failed,
+    do_remap=_do_remap
+}

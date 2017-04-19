@@ -50,8 +50,7 @@ Apache Traffic Server (ATS) Plugin
 Requirements
 ~~~~~~~~~~~~
 
-- ATS 5.3.x (tested on 5.3, but it _should_ work on other 5.x and 4.x releases)
-  configured as a reverse proxy server
+- ATS 7.2.x (tested on 7.2.0) configured as a reverse proxy server
 - ATS Lua plugin
 
 See the `Apache Traffic Server Documentation <https://docs.trafficserver.apache.org/en/latest/index.html>`_
@@ -72,28 +71,47 @@ Put the following into a file that is readable by ATS (ex:
     --
     factored_settings = {
       -- the HOST and PORT Factored is running on
+      scheme='http',
       host='127.0.0.1',
       port=8000,
 
       -- AUTH TKT settings
-      cookie_name='pnutbtr',
-      secret='secret',
+      cookie_name='your_auth_tkt_cookie_name',
+      secret='your_auth_tkt_secret_here',
       include_ip=false, -- [true] to include IP in cookie value
       timeout=false, -- [true] to manually handle cookie timeouts
 
       -- PLUGIN directory -- by default factored has a "plugins" directory
       -- which contains several lua files that are necessary. This directory
       -- should contain "ats.lua", "factored.lua", "bit.lua", and "sha.lua"
-      basepath='/opt/factored/src/plugins/'
+      basepath='/path/to/factored/plugins/'
     }
 
-    -- this needs to be in your custom settings file, and probably doesn't
-    -- need to be modified.
+    ------------------------------------------------------------------------------
+    -- ## PAST THIS POINT YOU SHOULDN'T NEED TO MODIFY ###########################
+    -- (but it is required)
+    --
     require 'package'
     if string.find(package.path, factored_settings.basepath) == nil then
         ts.add_package_path(factored_settings.basepath .. '?.lua')
     end
-    require 'ats'
+    ats = require 'ats'
+
+    function do_remap()
+      ts.http.set_debug(0)
+      local status, ret = pcall(ats.do_remap)
+      -- if the pcall was successful, then we should be able to return
+      -- the result of the pcall 
+      if status then
+        return ret
+      else
+        -- this is a special case, if something went wrong in the normal
+        -- remap process, the url will be intercepted with a 403 message
+        -- if you want a customized message, put your own intercept function here
+        ts.http.intercept(ats.factored_failed) 
+        return 0
+      end
+    end
 
 Then in your ATS ``remap.config`` file, you'll want a line like the
 following:::
@@ -105,8 +123,15 @@ Where 'TARGET' would be the incoming URL and 'REPLACEMENT' is the upstream
 
 The ``/path/to/tslua.so`` is going to be based on your installation -- a
 default ATS installation from source on Ubuntu will put it in
-``/usr/local/libexec/tslua.so``.
+``/usr/local/libexec/tslua.so``. Note -- the full path is necessary.
 
 The ``/path/to/your/custom/settings.lua`` would be the path to the file
 that contains your customized factored configuration
-(``/etc/factored/plugin.lua`` from the example above).
+(``/etc/factored/plugin.lua`` from the example above). Note -- the full path is
+necessary.
+
+This plugin works by checking the auth_tkt cookie on each request -- if there
+is a cookie, and it's valid, then the plugin just passes on factored entirely,
+letting ATS continue with the request process. If the cookie is not found or
+not valid, the plugin will re-write the upstream to point at the configured
+factored server.

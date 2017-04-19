@@ -1,6 +1,10 @@
 Changelog
 =========
 
+4.0.7 (unreleased)
+
+- fix ats plugin to be compatible with ats 7.2.0
+
 4.0.6 (2017-04-17)
 ------------------
 

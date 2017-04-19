@@ -9,8 +9,10 @@ require 'os'
 --        to include the settings.basepath value instead of having a settings.basepath?
 -- sha256 = loadfile(settings.basepath .. 'sha.lua')()
 -- loadfile(settings.basepath .. 'bit.lua')()
-sha256 = require 'sha'
-require 'bit'
+--sha256 = require 'sha'
+--bit = require 'bit'
+sha256 = loadfile(factored_settings.basepath .. 'sha.lua')()
+loadfile(factored_settings.basepath .. 'bit.lua')()
 
 function string:trim()
   return (self:gsub("^%s*(.-)%s*$", "%1"))
