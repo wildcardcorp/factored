@@ -11,3 +11,5 @@ env
 develop-eggs
 eggs
 *.egg-info
+develop-noproxy-local.ini
+dist
