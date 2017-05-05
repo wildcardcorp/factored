@@ -1,0 +1,12 @@
+version: '2'
+services:
+    factored:
+        build: .
+        image: factored
+        entrypoint: /docker-entrypoint.sh
+        volumes:
+            - .:/app
+        ports:
+            - "8000:8000"
+        environment:
+            - CONFIG=develop-noproxy.ini
