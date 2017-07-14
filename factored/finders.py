@@ -74,7 +74,6 @@ class EmailDomainFinderPlugin(object):
 addUserFinderPlugin(EmailDomainFinderPlugin)
 
 
-
 # Should handle:
 #   - LDAPS (or no ldap, can disable certificate checkcs as well)
 #   - STARTTLS (or not)

@@ -40,6 +40,10 @@ auth_remember_timeout
 base_auth_url
     Base url all authentication urls and resources are based off of. Useful if
     you're only looking to authenticate a portion of a site.
+excepted_paths
+    the path part of a request URL is compared to items in this list (one per line)
+    and if there is a match, the request will be processed normally without
+    any factored authorization.
 supported_auth_schemes
     Supported authentication schemes.
 email_auth_window
@@ -59,6 +63,18 @@ em.url_remember
     Accepts 'True' or 'False' values. If 'True' then the generated `{url}` will
     indicate the auth should be remembered for the `auth_remember_timeout`
     instead of the `auth_timeout`
+sms.auth_window
+    number of seconds before an sms authentication code expires
+sms.userlist
+    url to a JSON endpoint for getting a phone number for a particular user.
+sms.msg_tmpl
+    sms message template, must have {code} in the body of the text.
+sms.plivo_auth_id
+    plivo auth_id to use with plivo api
+sms.plivo_auth_token
+    plivo auth_token to use with plivo api
+sms.plivo_phone_number
+    source phone number to use with plivo api
 pyramid. prefixed options
     Configuration passed directly into pyramid configuration.
 sqlalchemy.url
