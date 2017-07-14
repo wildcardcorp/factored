@@ -157,11 +157,16 @@ class Authenticator(object):
             'hide_banner', 'false').strip().lower() == 'true'
         self.hide_banner = settings['hide_banner']
 
+        self.excepted_paths = [a.strip() for a in
+            settings.get("excepted_paths", "").splitlines()]
+
     def __call__(self, environ, start_response):
         def wrapped_app(environ2, start_response2):
             auth = AuthTktAuthenticator(self.auth_tkt_policy, environ2)
             environ2['auth'] = auth
-            if auth.authenticate():
+            path = environ2['PATH_INFO']
+            excepted_paths = self.excepted_paths
+            if path in excepted_paths or auth.authenticate():
                 if self.app is not None:
                     # if this is a filter, we can pass on to the actual app
                     return self.app(environ2, start_response2)

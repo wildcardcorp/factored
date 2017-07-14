@@ -4,11 +4,13 @@ from datetime import timedelta
 from formencode import Schema, validators
 import hashlib
 import os
-from pyramid.httpexceptions import HTTPFound
+from pyramid.httpexceptions import HTTPFound, HTTPInternalServerError
 from pyramid.util import strings_differ
 from pyramid_mailer.message import Message
 from pyramid_simpleform import Form
 from pyramid_simpleform.renderers import FormRenderer
+import requests
+import string
 import time
 try:
     from urlparse import urlparse, parse_qsl
@@ -22,6 +24,10 @@ from factored.utils import get_mailer
 from factored.utils import make_random_code
 from factored.utils import generate_url
 from factored.utils import create_message_id
+
+import logging
+logger = logging.getLogger(__name__)
+
 
 _auth_plugins = []
 
@@ -471,3 +477,144 @@ class EmailAuthPlugin(BasePlugin):
 
 
 addFactoredPlugin(EmailAuthPlugin)
+
+
+class SMSAuthPlugin(BasePlugin):
+    name = "SMS"
+    path = "sms"
+
+    _formtext_overrides = {
+        'title': u'SMS Authenticator',
+        'legend': u'Authenticate through an sms message...',
+        'username': {
+            'label': u'Username/EMail',
+            'desc': u'Your username (often an EMail address)'
+        },
+        'code': {
+            'desc': u'Provided in the text message sent to your phone.'
+        },
+        'button': {
+            'username': u'Send SMS'
+        }
+    }
+
+    def get_user(self, username):
+        user = super(SMSAuthPlugin, self).get_user(username)
+        
+        # SMS requires a phone number, but autouserfinders have no (current)
+        # way of getting more information about a user than the username.
+        # The best recourse, without bumpining into a major version update,
+        # for now, is to reach out to an api that will give us a phone number
+        # for a given username. The auth remains decoupled from the user finder
+        # for now. Ideally the user finders would be able to return a configurable
+        # amount of data, some of which could be phone numbers -- but that's
+        # for a future update ;)
+
+        endpoint = self.req.registry.settings.get("sms.userlist", None)
+        if not endpoint:
+            logger.error("sms.userlist endpoint not configured")
+            raise HTTPInternalServerError()
+        if "{username}" not in endpoint:
+            logger.error("sms.userlist endpoint not configured with {username} variable")
+            raise HTTPInternalServerError()
+
+        endpoint = endpoint.format(username=username)
+        try:
+            response = requests.get(endpoint)
+            response.raise_for_status()
+            user.phone = response.json()["phone"]
+        except requests.exceptions.HTTPError as ex:
+            logger.error("error getting user info from sms.userlist endpoint ({} -- {}):".format(
+                ex.response.status_code,
+                ex.response.text()))
+            logger.error(ex)
+            raise HTTPInternalServerError()
+        except ValueError as ex:
+            logger.error(ex)
+            raise HTTPInternalServerError()
+
+        return user
+
+    def user_form_submitted_successfully(self, user):
+        # grab configuration
+        sms_msg_tmpl = self.req.registry.settings.get(
+            "sms.msg_tmpl",
+            "Factored: your security code is {code}. Please don't reply.")
+        plivo_auth_id = self.req.registry.settings.get("sms.plivo_auth_id", None)
+        plivo_auth_token = self.req.registry.settings.get("sms.plivo_auth_token", None)
+        plivo_phone_number = self.req.registry.settings.get("sms.plivo_phone_number", None)
+        if not plivo_auth_id or not plivo_auth_token or not plivo_phone_number:
+            import pdb; pdb.set_trace()
+            logger.error("plivo not completely configured, check sms.plivo_* settings")
+            raise HTTPInternalServerError()
+        if "{code}" not in sms_msg_tmpl:
+            logger.error("sms.msg_tmpl is not configured with a {code} variable")
+            raise HTTPInternalServerError()
+
+        # generate code for this request
+        user.generated_code = make_random_code(6)
+        user.generated_code_time_stamp = datetime.utcnow()
+        self.db.save(self.req, user)
+
+        # prepare phone numbers
+        ## only digits, and there needs to be 11 of them (country, area, phone)
+        src_number = ''.join([d for d in plivo_phone_number if d in string.digits])
+        dest_number = ''.join([d for d in user.phone if d in string.digits])
+        if len(src_number) != 11:
+            logger.error("plivo number is incomplete: must include country "
+                         "code, area code, and phone number -- 11 digits in total."
+                         "This is the number configured: {}".format(src_number))
+            raise HTTPInternalServerError()
+        if len(dest_number) != 11:
+            logger.error("user phone number is incomplete: must include country "
+                         "code, area code, and phone number -- 11 digits in total."
+                         "This is the number received: {}".format(dest_number))
+            raise HTTPInternalServerError()
+
+        # call out to plivo to send message
+        plivo_endpoint = "https://api.plivo.com/v1/Account/{}/Message/".format(plivo_auth_id)
+        payload = dict(
+            src=src_number,
+            dst=dest_number,
+            text=sms_msg_tmpl.format(code=user.generated_code)
+        )
+        response = requests.post(plivo_endpoint, json=payload, auth=(plivo_auth_id, plivo_auth_token))
+
+        # handle/log the result
+        if response.status_code != 202:
+            logger.error("problem sending sms:")
+            try:
+                logger.error(response.json())
+            except:
+                logger.error(response.text)
+            raise HTTPInternalServerError()
+        else:
+            rjson = response.json()
+            logger.info("User '{}' sent msg to '{}'. plivo msg uuid is '{}'".format(
+                user.username,
+                dest_number,
+                rjson.get("message_uuid", "unknown")))
+
+    def check_code(self, user, code=None):
+        try:
+            window = int(self.req.registry.settings.get('sms.auth_window', 120))
+        except ValueError:
+            logger.error("sms.auth_window is not set to a valid integer. "
+                         "Setting to default of 120 seconds")
+            window = 120
+        codetocheck = code if code else self.cform.data['code']
+        now = datetime.utcnow()
+        expires_at = user.generated_code_time_stamp + timedelta(seconds=window)
+
+        # out of time
+        if now >= expires_at:
+            return False
+
+        # bad code entered
+        if strings_differ(codetocheck, user.generated_code):
+            return False
+
+        return True
+
+
+addFactoredPlugin(SMSAuthPlugin)
