@@ -1,9 +1,16 @@
 Changelog
 =========
 
+4.x.x (unreleased)
+------------------
+
+- no changes yet
+
 4.0.7 (unreleased)
+------------------
 
 - fix ats plugin to be compatible with ats 7.2.0
+- add sms plugin
 
 4.0.6 (2017-04-17)
 ------------------
