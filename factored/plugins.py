@@ -526,7 +526,7 @@ class SMSAuthPlugin(BasePlugin):
         except requests.exceptions.HTTPError as ex:
             logger.error("error getting user info from sms.userlist endpoint ({} -- {}):".format(
                 ex.response.status_code,
-                ex.response.text()))
+                ex.response.text))
             logger.error(ex)
             raise HTTPInternalServerError()
         except ValueError as ex:

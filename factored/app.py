@@ -166,7 +166,8 @@ class Authenticator(object):
             environ2['auth'] = auth
             path = environ2['PATH_INFO']
             excepted_paths = self.excepted_paths
-            if path in excepted_paths or auth.authenticate():
+            auth_result = auth.authenticate()
+            if path in excepted_paths or auth_result:
                 if self.app is not None:
                     # if this is a filter, we can pass on to the actual app
                     return self.app(environ2, start_response2)
