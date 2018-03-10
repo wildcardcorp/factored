@@ -1,5 +1,0 @@
-- support for text messages
-- support for yubikey
-- move all plugins to be registered via entry points
-- add pyramid tween integration
-    - more simple, document

@@ -13,3 +13,5 @@ eggs
 *.egg-info
 develop-noproxy-local.ini
 dist
+*.sqlite
+.pytest_cache
