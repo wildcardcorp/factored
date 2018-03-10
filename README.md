@@ -28,9 +28,18 @@ within factored.
     in a JWT value can be considered a valid user -- IE is the subject in question
     an actual account and active within the system.
   * _authenticator plugins_ are ultimately responsible for providing confirmation
-    and a value to use as a subject when generating a token (jwt). The are
-    comprised of 4 parts:
-    - get/template/render of the registration form
-    - post/submit/handle of the registration form
-    - get/template/render of the auth form
-    - post/submit/handle of the auth form
+    and a value to use as a subject when generating a token (jwt).
+  * _template plugins_ generate the base template used in authenticator plugins
+  * _datastore plugins_ are used to store access requests and other information
+    through a standared api
+
+## ToDo
+
+  * reimplement ATS integration
+  * readd GoogleAuth authenticator
+  * readd SMSAuth authenticator
+  * readd SQLUserFinder
+  * readd LDAPUserFinder
+  * reimplement registration (IRegistrationPlugin + mechanism for setting up
+    authenticators like GoogleAuth in a secure manner)
+  * test coverage
