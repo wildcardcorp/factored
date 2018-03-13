@@ -33,6 +33,8 @@ class SQLDataStore(IDataStorePlugin):
     def initialize(self, settings):
         self.dbengine = engine_from_config(settings, prefix="sql.")
         DBSession.configure(bind=self.dbengine)
+        self.dbsession = DBSession()
+
 
         # make sure tables are created
         Base.metadata.create_all(self.dbengine)
@@ -45,18 +47,18 @@ class SQLDataStore(IDataStorePlugin):
         ar.timestamp = timestamp
         ar.payload = payload
 
-        db = DBSession()
+        db = self.dbsession
         db.add(ar)
         db.commit()
 
     def get_access_request(self, subject):
-        db = DBSession()
+        db = self.dbsession
         ar = db.query(AccessRequest).filter_by(subject=subject).first()
         if ar is None:
             return None
         return (ar.subject, ar.timestamp, ar.payload)
 
     def delete_access_requests(self, subject):
-        db = DBSession()
+        db = self.dbsession
         db.query(AccessRequest).filter_by(subject=subject).delete()
         db.commit()
