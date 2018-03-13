@@ -11,6 +11,7 @@ from factored.plugins import IDataStorePlugin
 
 
 Base = declarative_base()
+DBSession = sessionmaker()
 
 
 class AccessRequest(Base):
@@ -31,8 +32,7 @@ class AccessRequest(Base):
 class SQLDataStore(IDataStorePlugin):
     def initialize(self, settings):
         self.dbengine = engine_from_config(settings, prefix="sql.")
-        self.dbsession = sessionmaker()
-        self.dbsession.configure(bind=self.dbengine)
+        DBSession.configure(bind=self.dbengine)
 
         # make sure tables are created
         Base.metadata.create_all(self.dbengine)
@@ -45,18 +45,18 @@ class SQLDataStore(IDataStorePlugin):
         ar.timestamp = timestamp
         ar.payload = payload
 
-        db = self.dbsession()
+        db = DBSession()
         db.add(ar)
         db.commit()
 
     def get_access_request(self, subject):
-        db = self.dbsession()
+        db = DBSession()
         ar = db.query(AccessRequest).filter_by(subject=subject).first()
         if ar is None:
             return None
         return (ar.subject, ar.timestamp, ar.payload)
 
     def delete_access_requests(self, subject):
-        db = self.dbsession()
+        db = DBSession()
         db.query(AccessRequest).filter_by(subject=subject).delete()
         db.commit()

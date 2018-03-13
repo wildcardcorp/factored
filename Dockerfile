@@ -14,11 +14,6 @@ COPY docker-entrypoint.sh /
 RUN mkdir /app /data
 WORKDIR /app
 
-# we do this because requirements change less than other files, which means
-# the next copy step for putting the rest of the source code into the container
-# won't force pip installation every update
-COPY requirements.txt /app
-RUN pip install -r requirements.txt
-
 COPY . /app
-RUN python setup.py develop
+RUN pip install -r requirements.docker.txt
+

@@ -4,6 +4,11 @@
 
     $ make build
     $ make run
+    $ firefox http://127.0.0.1:8080
+
+That should get everything built and running, then get you to the nginx landing
+site. From there your request should hit the validator, then bounce to the
+authenticator and prompt for selecting which auth method to use.
 
 See the Makefile for the details of each command.
 

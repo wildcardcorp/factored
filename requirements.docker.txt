@@ -1,0 +1,5 @@
+# this configuration is basically just to get the source package installed
+# with pip. see seup.cfg for abstract requirements and requiremnts.txt for pins.
+
+-r requirements.txt
+-e ./
