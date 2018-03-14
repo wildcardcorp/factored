@@ -41,10 +41,9 @@ within factored.
 ## ToDo
 
   * reimplement ATS integration
-  * readd GoogleAuth authenticator
+  * (maybe) readd GoogleAuth authenticator
   * readd SMSAuth authenticator
   * readd SQLUserFinder
   * readd LDAPUserFinder
-  * reimplement registration (IRegistrationPlugin + mechanism for setting up
-    authenticators like GoogleAuth in a secure manner)
   * test coverage
+  * docs/*
