@@ -100,7 +100,23 @@ def authenticate(req):
     # if we have a valid auth type selected by the user, then get it's 
     # configured template info too
     tmpl = "base.html"
-    if auth_type is not None:
+    if auth_type is not None and auth_type == "regform":
+        registrar = settings.get("registrar", None)
+        if registrar is not None:
+            registrar_settings = settings.get("registrarsettings", {})
+            registrar_tmpl_kwargs = registrar.plugin_object.handle(
+                registrar_settings,
+                req.params,
+                ds,
+                finder)
+            tmpl_kwargs.update(registrar_tmpl_kwargs)
+            registrar_tmpl_str = registrar.plugin_object.template(
+                registrar_settings,
+                req.params)
+            tmpl = "registration.html"
+            loader[tmpl] = registrar_tmpl_str
+
+    elif auth_type is not None:
         auth_plugin = plugins.getPluginByName(auth_type, category="authenticator")
         if auth_plugin is not None:
             auth_tmpl_settings = get_plugin_settings("plugin.{}.".format(auth_type), settings, nolookup=True)
@@ -172,6 +188,16 @@ def app(global_config, **settings):
     finder = plugins.getPluginByName(finderpluginname, category="finder")
     finder.plugin_object.initialize(finderpluginsettings)
     settings["finder"] = finder
+
+    # setup the configured registrar
+    registrarpluginname = settings.get("plugins.registrar", None)
+    if not registrarpluginname:
+        logger.info("plugins.registrar not configured")
+    else:
+        registrarpluginsettings = get_plugin_settings("plugins.registrar", settings)
+        settings["registrarsettings"] = registrarpluginsettings
+        registrar = plugins.getPluginByName(registrarpluginname, category="registrar")
+        settings["registrar"] = registrar
 
     # setup the wsgi app
     config = Configurator(settings=settings)

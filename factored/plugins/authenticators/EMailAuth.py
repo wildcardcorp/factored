@@ -7,19 +7,12 @@ import time
 from pyramid_mailer.mailer import Mailer
 from pyramid_mailer.message import Message
 
+from factored.mail import create_message_id
 from factored.plugins import IAuthenticatorPlugin
 
 import logging
-logger = logging.getLogger("factored.authenticator")
+logger = logging.getLogger("factored.plugins")
 auditlog = logging.getLogger('factored.audit')
-
-
-def create_message_id(domain='localhost', mid=None):
-    if mid is None:
-        ts = str(time.time())
-        rand = binascii.hexlify(os.urandom(10))
-        mid = "{ts}-{rand}".format(ts=ts, rand=rand)
-    return "<{mid}@{domain}>".format(mid=mid, domain=domain)
 
 
 class CodeTimeoutError(Exception):

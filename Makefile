@@ -22,5 +22,7 @@ run-validator:
 	docker-compose run --no-deps --rm --service-ports fvalidator
 run-validator-bash:
 	docker-compose run --no-deps --rm --service-ports fvalidator /bin/bash
+run-authenticator:
+	docker-compose run --no-deps --rm --service-ports fauth
 run-debugmailer:
 	docker-compose up --build --remove-orphans debugmailer

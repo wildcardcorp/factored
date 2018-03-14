@@ -20,6 +20,7 @@ def get_manager(plugin_dirs):
     manager.setCategoriesFilter({
         "finder": IFinderPlugin,
         "authenticator": IAuthenticatorPlugin,
+        "registrar": IRegistrationPlugin,
         "template": ITemplatePlugin,
         "datastore": IDataStorePlugin,
     })
@@ -119,7 +120,7 @@ class IRegistrationPlugin(IPlugin):
     # NOTE: reserved keys for the return dict are 'state' and 'auth_options',
     #       using either may cause unexpected issues.
     #
-    def handler(self, settings, params):
+    def handle(self, settings, params, datastore, finder):
         raise NotImplemented()
 
     #
@@ -128,7 +129,7 @@ class IRegistrationPlugin(IPlugin):
     #         registration_handler method
     #
     def template(self, settings, params):
-        raise NotImplemented()
+        return """{% extends "base.html" %}"""
 
 
 #
