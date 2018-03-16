@@ -34,7 +34,7 @@ class NoAccessRequestError(Exception):
 class EMailAuth(IAuthenticatorPlugin):
     @property
     def display_name(self):
-        return "EMail"
+        return "Email"
 
     def get_code_hash(self, settings, code):
         salt = settings.get("code_hash_salt", "7pLPnGtXI9")
