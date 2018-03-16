@@ -1,65 +1,38 @@
 from setuptools import setup, find_packages
 
-version = '4.0.8'
-
-requires = [
-    'WebOb',
-    'pyramid',
-    'SQLAlchemy',
-    'pyramid_simpleform',
-    'pyramid_mailer',
-    'argparse',
-    'pyramid_tm',
-    'pyramid_chameleon'
-]
-
-setup(name='factored',
-      version=version,
-      description="A WSGI app that allows you to add another factor of "
-                  "authentication to any application server.",
-      long_description="%s\n%s" % (
-          open("README.rst").read(),
-          open("CHANGES.rst").read()),
-      classifiers=[
-          'Topic :: Internet :: WWW/HTTP :: WSGI',
-          'Topic :: Internet :: WWW/HTTP :: WSGI :: Application',
-          'Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware'],
-      keywords='mutli factor authentication 2factor mutl-factor '
-               'auth auth_tkt google otp',
-      author='Nathan Van Gheem',
-      author_email='vangheem@gmail.com',
-      url='https://github.com/wildcardcorp/factored',
-      license='GPL2',
-      packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
-      include_package_data=True,
-      zip_safe=False,
-      install_requires=requires,
-      tests_require=requires + ['WebTest'],
-      extras_require={
-          'test': [
-              'WebTest',
-              'pyramid_debugtoolbar'
-          ],
-          'proxy': [
-              'WSGIProxy'
-          ]
-      },
-      test_suite="factored",
-      entry_points={
-          'paste.app_factory': [
-              'simpleproxy = factored.app:SimpleProxy',
-              'main = factored.app:Authenticator'],
-          'paste.filter_app_factory': [
-              'main = factored.app:Authenticator',
-              'sm = factored.sm:make_sm'],
-          'console_scripts': [
-              'factored_initializedb = factored.scripts.initializedb:main',
-              'factored_adduser = factored.scripts.users:add',
-              'factored_removeuser = factored.scripts.users:remove',
-              'factored_listusers = factored.scripts.users:listusers',
-              'factored_listuserinfo = factored.scripts.users:listuserinfo'
-          ],
-          'factored.db_factory': [
-              'sql = factored.sql:factory'
-          ]
-      })
+setup(
+    name='factored',
+    version='5.0.0.dev0',
+    description="Pluggable 2FA Proxy Service",
+    long_description="%s\n%s" % (
+        open("README.md").read(),
+        open("CHANGES.md").read()),
+    author='Wildcard Corp.',
+    author_email='support@wildcardcorp.com',
+    url='https://github.com/wildcardcorp/factored',
+    license='GPL2',
+    packages=['factored'],
+    include_package_data=True,
+    zip_safe=False,
+    install_requires=[
+        'pyramid',
+        'pyramid_mailer',
+        'waitress',
+        'yapsy',
+        'pyjwt',
+        'jinja2',
+        'sqlalchemy',
+    ],
+    extras_require={
+        'test':[
+            'pytest',
+        ],
+    },
+    entry_points={
+        "paste.app_factory": [
+            "validator_main = factored.validator:app",
+            "authenticator_main = factored.authenticator:app",
+        ],
+        "console_scripts": [
+        ],
+    })

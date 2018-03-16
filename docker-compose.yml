@@ -1,12 +1,39 @@
-version: '2'
+version: '3'
 services:
-    factored:
+    debugmailer:
+        image: python:3.6-slim
+        command: python -m smtpd -n -c DebuggingServer 0.0.0.0:2525
+        environment:
+            - PYTHONUNBUFFERED=0
+    nginx:
+        image: openresty/openresty:xenial
+        command: nginx -g "daemon off;"
+        volumes:
+            - ./etc/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
+            - ./lua:/opt/lua
+        ports:
+            - "8080:80"
+        depends_on:
+            - fvalidator
+            - fauth
+    fvalidator:
         build: .
         image: factored
         entrypoint: /docker-entrypoint.sh
         volumes:
             - .:/app
         ports:
+            - "6543:6543"
+        command: pserve /app/etc/validator.docker.ini
+    fauth:
+        build: .
+        image: factored
+        entrypoint: /docker-entrypoint.sh
+        volumes:
+            - .:/app
+            - ./data:/data
+        ports:
             - "8000:8000"
-        environment:
-            - CONFIG=develop-noproxy.ini
+        command: pserve /app/etc/authenticator.docker.ini
+        depends_on:
+            - debugmailer
