@@ -5,13 +5,13 @@ from sqlalchemy import (
     String,
     Float)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 from factored.plugins import IDataStorePlugin
 
 
 Base = declarative_base()
-DBSession = sessionmaker()
+DBSession = scoped_session(sessionmaker())
 
 
 class AccessRequest(Base):

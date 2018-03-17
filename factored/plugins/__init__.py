@@ -1,3 +1,4 @@
+import importlib
 import os
 from yapsy.IPlugin import IPlugin
 from yapsy.PluginManager import PluginManager
@@ -21,6 +22,9 @@ def get_manager(plugin_dirs=None, plugin_dotted_names=None, load_defaults=True):
     """
     if plugin_dirs is None or type(plugin_dirs) is not list:
         plugin_dirs = []
+    if plugin_dotted_names is None or type(plugin_dirs) is not list:
+        plugin_dotted_names = []
+
     if load_defaults:
         plugin_dirs.append(
             os.path.abspath(
@@ -42,7 +46,19 @@ def get_manager(plugin_dirs=None, plugin_dotted_names=None, load_defaults=True):
         "template": ITemplatePlugin,
         "datastore": IDataStorePlugin,
     })
-    manager.collectPlugins()
+    manager.locatePlugins()
+
+    if len(plugin_dotted_names) > 0:
+        for dname in plugin_dotted_names:
+            module = importlib.import_module(dname)
+            pname = dname.split(".")[-1]
+            infopath = module.__file__[:-3]
+            infoobj = PluginInfo(pname, infopath)
+            candidate = (infopath, module.__file__, infoobj)
+            manager.appendPluginCandidate(candidate)
+
+
+    manager.loadPlugins()
     return manager
 
 
