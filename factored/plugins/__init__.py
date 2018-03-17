@@ -1,7 +1,9 @@
+import os
 from yapsy.IPlugin import IPlugin
 from yapsy.PluginManager import PluginManager
 from yapsy.PluginFileLocator import PluginFileLocator
 from yapsy.PluginFileLocator import PluginFileAnalyzerMathingRegex
+from yapsy.PluginInfo import PluginInfo
 
 import logging
 logger = logging.getLogger("factored.plugins")
@@ -10,7 +12,8 @@ logger = logging.getLogger("factored.plugins")
 #
 # plugin_dirs: list of directory paths where plugins should be searched for
 #
-def get_manager(plugin_dirs):
+def get_manager(plugin_dirs, load_defaults=True):
+    # don't include py files that start with an understcore
     analyzer = PluginFileAnalyzerMathingRegex("pyfiles", "^.*\.py$")
     filelocator = PluginFileLocator(analyzers=[analyzer])
     filelocator.setPluginPlaces(plugin_dirs)
@@ -24,8 +27,28 @@ def get_manager(plugin_dirs):
         "template": ITemplatePlugin,
         "datastore": IDataStorePlugin,
     })
-    manager.collectPlugins()
+    manager.locatePlugins()
 
+    # add the default array of plugins, if they were to be loaded
+    if load_defaults:
+        def appendplugin(module):
+            pythonfn = os.path.abspath(module.__file__)
+            infofn = pythonfn[:-3]
+            infoobj = PluginInfo(module.__name__.split('.')[-1], infofn)
+            manager.appendPluginCandidate((infofn, pythonfn, infoobj))
+        from factored.plugins.defaults.finders import EMailDomain
+        appendplugin(EMailDomain)
+        from factored.plugins.defaults.authenticators import EMailAuth
+        appendplugin(EMailAuth)
+        from factored.plugins.defaults.registrars import MailerRegistration
+        appendplugin(MailerRegistration)
+        from factored.plugins.defaults.templates import DefaultTemplate
+        appendplugin(DefaultTemplate)
+        from factored.plugins.defaults.datastores import MemDataStore, SQLDataStore
+        appendplugin(MemDataStore)
+        appendplugin(SQLDataStore)
+
+    manager.loadPlugins()
     return manager
 
 
