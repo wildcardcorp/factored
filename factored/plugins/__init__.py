@@ -11,8 +11,18 @@ logger = logging.getLogger("factored.plugins")
 
 #
 # plugin_dirs: list of directory paths where plugins should be searched for
+# load_defaults: True to load the plugins included with factored
 #
 def get_manager(plugin_dirs, load_defaults=True):
+    if plugin_dirs is None or type(plugin_dirs) is not list:
+        plugin_dirs = []
+    if load_defaults:
+        plugin_dirs.append(
+            os.path.abspath(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "defaults")))
+
     # don't include py files that start with an understcore
     analyzer = PluginFileAnalyzerMathingRegex("pyfiles", "^.*\.py$")
     filelocator = PluginFileLocator(analyzers=[analyzer])
@@ -27,28 +37,7 @@ def get_manager(plugin_dirs, load_defaults=True):
         "template": ITemplatePlugin,
         "datastore": IDataStorePlugin,
     })
-    manager.locatePlugins()
-
-    # add the default array of plugins, if they were to be loaded
-    if load_defaults:
-        def appendplugin(module):
-            pythonfn = os.path.abspath(module.__file__)
-            infofn = pythonfn[:-3]
-            infoobj = PluginInfo(module.__name__.split('.')[-1], infofn)
-            manager.appendPluginCandidate((infofn, pythonfn, infoobj))
-        from factored.plugins.defaults.finders import EMailDomain
-        appendplugin(EMailDomain)
-        from factored.plugins.defaults.authenticators import EMailAuth
-        appendplugin(EMailAuth)
-        from factored.plugins.defaults.registrars import MailerRegistration
-        appendplugin(MailerRegistration)
-        from factored.plugins.defaults.templates import DefaultTemplate
-        appendplugin(DefaultTemplate)
-        from factored.plugins.defaults.datastores import MemDataStore, SQLDataStore
-        appendplugin(MemDataStore)
-        appendplugin(SQLDataStore)
-
-    manager.loadPlugins()
+    manager.collectPlugins()
     return manager
 
 
