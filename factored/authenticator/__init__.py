@@ -160,11 +160,12 @@ def authenticate(req):
 def app(global_config, **settings):
     # setup the plugin manager
     plugindirs = settings.get('plugins.dirs', None)
-    if plugindirs is None:
-        logger.error("plugins.dirs not configured")
-        return None
-    plugindirs = plugindirs.splitlines()
-    plugins = get_manager(plugindirs)
+    if plugindirs is not None:
+        plugindirs = plugindirs.splitlines()
+    pluginmodules = settings.get('plugins.modules', None)
+    if pluginmodules is not None:
+        pluginmodules = pluginmodules.splitlines()
+    plugins = get_manager(plugin_dirs=plugindirs, plugin_modules=pluginmodules)
     settings["plugins.manager"] = plugins
 
     # store the configured root template's settings here so it doesn't need

@@ -35,7 +35,6 @@ class SQLDataStore(IDataStorePlugin):
         DBSession.configure(bind=self.dbengine)
         self.dbsession = DBSession()
 
-
         # make sure tables are created
         Base.metadata.create_all(self.dbengine)
 

@@ -10,11 +10,11 @@ import logging
 logger = logging.getLogger("factored.plugins")
 
 
-def get_manager(plugin_dirs=None, plugin_dotted_names=None, load_defaults=True):
+def get_manager(plugin_dirs=None, plugin_modules=None, load_defaults=True):
     """
     Keyword Arguments:
     plugin_dirs -- list of directory paths where plugins should be searched for
-    plugin_dotted_names -- list of strings representing the dotted path of a python module
+    plugin_modules -- list of strings representing the dotted path of a python module
     load_defaults -- True to load the plugins included with factored
 
     Returns:
@@ -22,8 +22,8 @@ def get_manager(plugin_dirs=None, plugin_dotted_names=None, load_defaults=True):
     """
     if plugin_dirs is None or type(plugin_dirs) is not list:
         plugin_dirs = []
-    if plugin_dotted_names is None or type(plugin_dirs) is not list:
-        plugin_dotted_names = []
+    if plugin_modules is None or type(plugin_modules) is not list:
+        plugin_modules = []
 
     if load_defaults:
         plugin_dirs.append(
@@ -48,8 +48,8 @@ def get_manager(plugin_dirs=None, plugin_dotted_names=None, load_defaults=True):
     })
     manager.locatePlugins()
 
-    if len(plugin_dotted_names) > 0:
-        for dname in plugin_dotted_names:
+    if len(plugin_modules) > 0:
+        for dname in plugin_modules:
             module = importlib.import_module(dname)
             pname = dname.split(".")[-1]
             infopath = module.__file__[:-3]
