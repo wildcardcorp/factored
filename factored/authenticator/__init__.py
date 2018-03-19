@@ -180,10 +180,10 @@ def app(global_config, **settings):
     # setup the plugin manager
     plugindirs = settings.get('plugins.dirs', None)
     if plugindirs is not None:
-        plugindirs = plugindirs.splitlines()
+        plugindirs = plugindirs.strip().splitlines()
     pluginmodules = settings.get('plugins.modules', None)
     if pluginmodules is not None:
-        pluginmodules = pluginmodules.splitlines()
+        pluginmodules = pluginmodules.strip().splitlines()
     plugins = get_manager(plugin_dirs=plugindirs, plugin_modules=pluginmodules)
     settings["plugins.manager"] = plugins
 
