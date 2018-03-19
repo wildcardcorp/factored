@@ -54,9 +54,13 @@ def get_authtype(req):
 
 @view_config(route_name='authenticate')
 def authenticate(req):
-    settings = req.registry.settings
-
     host = req.host
+
+    settings = {}
+    settings.update(req.registry.settings)
+    sp = settings.get("settingsplugin", None)
+    if sp is not None:
+        settings.update(sp.get_request_settings(host))
 
     # get db
     ds = settings.get("datastore", None)
@@ -207,6 +211,14 @@ def app(global_config, **settings):
         settings["registrarsettings"] = registrarpluginsettings
         registrar = plugins.getPluginByName(registrarpluginname, category="registrar")
         settings["registrar"] = registrar
+
+    # setup settings plugin
+    sp_settings = get_plugin_settings("plugins.settings", settings)
+    sp_name = settings.get("plugins.finder", None)
+    sp_plugin = None
+    if sp_name is not None and sp_name.strip() != "":
+        sp_plugin = plugins.getPluginByName(sp_name, category="settings")
+    settings["settingsplugin"] = sp_plugin
 
     # setup the wsgi app
     config = Configurator(settings=settings)

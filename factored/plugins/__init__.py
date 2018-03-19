@@ -45,6 +45,7 @@ def get_manager(plugin_dirs=None, plugin_modules=None, load_defaults=True):
         "registrar": IRegistrationPlugin,
         "template": ITemplatePlugin,
         "datastore": IDataStorePlugin,
+        "settings": ISettingsPlugin,
     })
     manager.locatePlugins()
 
@@ -284,5 +285,23 @@ class IDataStorePlugin(IPlugin):
         Arguments:
         host -- the host the request is being made too
         subject -- unique identity for the user/subject of the request
+        """
+        raise NotImplemented()
+
+
+class ISettingsPlugin(IPlugin):
+    """
+    ISettingsPlugin's are used by augment other plugin's settings on a
+    per-request basis.
+    """
+    def get_request_settings(self, host):
+        """
+        Arguments:
+        host -- the host the request is being made too
+
+        Returns:
+        a dict (empty or otherwise) of all settings that should take priority
+        for a request. They are applied over and along side the app settings
+        every request.
         """
         raise NotImplemented()

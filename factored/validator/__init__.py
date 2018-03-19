@@ -14,8 +14,9 @@ from factored.plugins import get_manager, get_plugin_settings
 # msg: string to log
 # exc_info: True/False show exception info if found
 # audit: True/False the message is getting logged to the audit log
-def log_err(req, msg, exc_info=False, audit=False):
-    logger.error(msg, exc_info=exc_info)
+def log_err(req, msg, exc_info=False, normal=True, audit=False):
+    if normal:
+        logger.error(msg, exc_info=exc_info)
     if audit:
         try:
             cookiename = req.registry.settings.get("jwt.cookie.name", "factored")
@@ -30,8 +31,9 @@ def log_err(req, msg, exc_info=False, audit=False):
             logger.error("fatal error while logging to audit log")
 
 
-def log_info(req, msg, exc_info=False, audit=False):
-    logger.info(msg, exc_info=exc_info)
+def log_info(req, msg, exc_info=False, normal=True, audit=False):
+    if normal:
+        logger.info(msg, exc_info=exc_info)
     if audit:
         try:
             cookiename = req.registry.settings.get("jwt.cookie.name", "factored")
@@ -56,8 +58,13 @@ def log_info(req, msg, exc_info=False, audit=False):
 #
 @view_config(route_name='validate')
 def validate(req):
-    settings = req.registry.settings
     host = req.host
+
+    settings = {}
+    settings.update(req.registry.settings)
+    sp = settings.get("settingsplugin", None)
+    if sp is not None:
+        settings.update(sp.get_request_settings(host))
 
     # -- VALIDATE TOKEN
     cookiename = settings.get("jwt.cookie.name", "factored")
@@ -107,7 +114,7 @@ def validate(req):
         log_info(req, msg, audit=True)
         return Response(status=403)
 
-    log_info(req, "validated", audit=True)
+    log_info(req, "validated", normal=False, audit=True)
     return Response(status=200)
 
 
@@ -134,6 +141,14 @@ def app(global_config, **settings):
         return None
     finder.plugin_object.initialize(findersettings)
     settings["finder"] = finder
+
+    # setup settings plugin
+    sp_settings = get_plugin_settings("plugins.settings", settings)
+    sp_name = settings.get("plugins.finder", None)
+    sp_plugin = None
+    if sp_name is not None and sp_name.strip() != "":
+        sp_plugin = plugins.getPluginByName(sp_name, category="settings")
+    settings["settingsplugin"] = sp_plugin
 
     # setup wsgi app
     config = Configurator(settings=settings)

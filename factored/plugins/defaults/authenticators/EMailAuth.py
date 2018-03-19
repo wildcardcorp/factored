@@ -90,9 +90,10 @@ class EMailAuth(IAuthenticatorPlugin):
         ar = datastore.get_access_request(host, subject)
         if ar is None:
             raise NoAccessRequestError("No request found")
-        stored_subject = ar[0]
-        stored_timestamp = ar[1]
-        stored_payload = ar[2]
+        stored_host = ar[0]
+        stored_subject = ar[1]
+        stored_timestamp = ar[2]
+        stored_payload = ar[3]
 
         # Has the code timed out?
         try:
