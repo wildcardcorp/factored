@@ -54,7 +54,7 @@ def get_authtype(req):
 
 @view_config(route_name='authenticate')
 def authenticate(req):
-    host = req.host
+    host = req.domain
     reqsettings = req.registry.settings
     plugins = reqsettings.get("plugins.manager", None)
     if plugins is None:

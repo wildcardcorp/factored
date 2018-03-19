@@ -58,7 +58,7 @@ def log_info(req, msg, exc_info=False, normal=True, audit=False):
 #
 @view_config(route_name='validate')
 def validate(req):
-    host = req.host
+    host = req.domain
     reqsettings = req.registry.settings
     plugin_manager = reqsettings.get("plugins.manager", None)
     if plugin_manager is None:
@@ -129,10 +129,10 @@ def app(global_config, **settings):
     # setup plugin manager
     plugindirs = settings.get('plugins.dirs', None)
     if plugindirs is not None:
-        plugindirs = plugindirs.splitlines()
+        plugindirs = plugindirs.strip().splitlines()
     pluginmodules = settings.get('plugins.modules', None)
     if pluginmodules is not None:
-        pluginmodules = pluginmodules.splitlines()
+        pluginmodules = pluginmodules.strip().splitlines()
     plugins = get_manager(plugin_dirs=plugindirs, plugin_modules=pluginmodules)
     settings["plugins.manager"] = plugins
 
