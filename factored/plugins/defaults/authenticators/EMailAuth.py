@@ -47,7 +47,7 @@ class EMailAuth(IAuthenticatorPlugin):
         return codehash
 
 
-    def generate_and_send_code(self, settings, params, datastore, subject):
+    def generate_and_send_code(self, host, settings, params, datastore, subject):
         # note: hexlify will generate 2 ascii chars for each byte, so the
         # length would be twice what we want, the "[0::2]" bit is just to
         # get every other character so we get the desired number of chars
@@ -58,7 +58,7 @@ class EMailAuth(IAuthenticatorPlugin):
         # save a storable hash of the code
         codehash = self.get_code_hash(settings, newcode)
         timestamp = time.time()
-        datastore.store_access_request(subject, timestamp, codehash)
+        datastore.store_access_request(host, subject, timestamp, codehash)
 
         # send code to user
         tmpl_msg = settings.get(
@@ -86,8 +86,8 @@ class EMailAuth(IAuthenticatorPlugin):
     #
     # will raise exception on invalid code
     #
-    def validate_code(self, settings, params, datastore, subject, code):
-        ar = datastore.get_access_request(subject)
+    def validate_code(self, host, settings, params, datastore, subject, code):
+        ar = datastore.get_access_request(host, subject)
         if ar is None:
             raise NoAccessRequestError("No request found")
         stored_subject = ar[0]
@@ -103,7 +103,7 @@ class EMailAuth(IAuthenticatorPlugin):
         timeout_delta = timedelta(seconds=code_timeout)
         expires_at = datetime.fromtimestamp(stored_timestamp) + timeout_delta
         if expires_at <= datetime.now():
-            datastore.delete_access_requests(subject)
+            datastore.delete_access_requests(host, subject)
             auditlog.info("{} had code timeout".format(subject))
             raise CodeTimeoutError("Your code timed out, please try again.")
 
@@ -113,7 +113,7 @@ class EMailAuth(IAuthenticatorPlugin):
             auditlog.info("{} had code mismatch".format(subject))
             raise CodeIncorrectError("Incorrect code.")
 
-    def handle(self, settings, params, datastore, finder):
+    def handle(self, host, settings, params, datastore, finder):
         submit = params.get("submit", None)
         subject = params.get("email", None)
         code = params.get("code", None)
@@ -124,26 +124,26 @@ class EMailAuth(IAuthenticatorPlugin):
 
         # must generate code and send to user to validate
         if submit == "email" and subject is not None:
-            if not finder.is_valid_subject(subject):
+            if not finder.is_valid_subject(host, subject):
                 # invalid user presented, don't let the user know, but also
                 # don't do any further work on the auth
                 auditlog.info("{} ** invalid user".format(subject))
             else:
                 try:
-                    self.generate_and_send_code(settings, params, datastore, subject)
+                    self.generate_and_send_code(host, settings, params, datastore, subject)
                     results["subject"] = subject
                 except CodeSendingError as ex:
                     error = str(ex)
 
         # must confirm code and generate jwt or reject
         elif submit == "code" and code is not None:
-            if not finder.is_valid_subject(subject):
+            if not finder.is_valid_subject(host, subject):
                 # invalid user presented, don't let the user know, but also
                 # don't do any further work on the auth
                 auditlog.info("{} ** bad code, invalid user".format(subject))
             else:
                 try:
-                    self.validate_code(settings, params, datastore, subject, code)
+                    self.validate_code(host, settings, params, datastore, subject, code)
                     return { "authenticated": True, "subject": subject }
                 except CodeTimeoutError as ex:
                     error = str(ex)

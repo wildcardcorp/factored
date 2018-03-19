@@ -57,6 +57,7 @@ def log_info(req, msg, exc_info=False, audit=False):
 @view_config(route_name='validate')
 def validate(req):
     settings = req.registry.settings
+    host = req.host
 
     # -- VALIDATE TOKEN
     cookiename = settings.get("jwt.cookie.name", "factored")
@@ -99,7 +100,7 @@ def validate(req):
 
     # -- VALIDATE TOKEN SUBJECT
     finder = settings["finder"].plugin_object
-    if not finder.is_valid_subject(subject):
+    if not finder.is_valid_subject(host, subject):
         msg = "{findername} : {subject} : not valid".format(
             findername=settings["finder"].name,
             subject=subject)

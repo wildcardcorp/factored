@@ -56,6 +56,8 @@ def get_authtype(req):
 def authenticate(req):
     settings = req.registry.settings
 
+    host = req.host
+
     # get db
     ds = settings.get("datastore", None)
     if ds is None:
@@ -77,12 +79,16 @@ def authenticate(req):
     plugins = settings["plugins.manager"]
     authenticators = plugins.getPluginsOfCategory("authenticator")
 
+    # authentication plugins activated:
+    auth_options = [dict(value=a.name, display=a.plugin_object.display_name)
+                    for a in authenticators]
+
     # grab default template data
     templatename = settings.get("plugins.template", "DefaultTemplate")
     base_tmpl_plugin = plugins.getPluginByName(templatename, category="template")
     base_tmpl_settings = settings.get("templatesettings", {})
-    base_tmpl_state = base_tmpl_plugin.plugin_object.state(base_tmpl_settings, req.params)
-    base_tmpl_str = base_tmpl_plugin.plugin_object.template(base_tmpl_settings, req.params)
+    base_tmpl_state = base_tmpl_plugin.plugin_object.state(host, base_tmpl_settings, req.params)
+    base_tmpl_str = base_tmpl_plugin.plugin_object.template(base_tmpl_state, auth_options)
 
     # setup the jinja2 loader with the configured template info
     loader = {
@@ -90,8 +96,7 @@ def authenticate(req):
     }
     tmpl_kwargs = {
         "state": base_tmpl_state,
-        "auth_options": [dict(value=a.name, display=a.plugin_object.display_name)
-                         for a in authenticators],
+        "auth_options": auth_options,
         "src": req.params.get("src", ""),
     }
     if auth_type is not None:
@@ -105,12 +110,14 @@ def authenticate(req):
         if registrar is not None:
             registrar_settings = settings.get("registrarsettings", {})
             registrar_tmpl_kwargs = registrar.plugin_object.handle(
+                host,
                 registrar_settings,
                 req.params,
                 ds,
                 finder)
             tmpl_kwargs.update(registrar_tmpl_kwargs)
             registrar_tmpl_str = registrar.plugin_object.template(
+                host,
                 registrar_settings,
                 req.params)
             tmpl = "registration.html"
@@ -121,6 +128,7 @@ def authenticate(req):
         if auth_plugin is not None:
             auth_tmpl_settings = get_plugin_settings("plugin.{}.".format(auth_type), settings, nolookup=True)
             auth_tmpl_kwargs = auth_plugin.plugin_object.handle(
+                host,
                 auth_tmpl_settings,
                 req.params,
                 ds,
@@ -144,7 +152,7 @@ def authenticate(req):
                         overwrite=True)
                     return resp
                 tmpl_kwargs.update(auth_tmpl_kwargs)
-            auth_tmpl_str = auth_plugin.plugin_object.template(auth_tmpl_settings, req.params)
+            auth_tmpl_str = auth_plugin.plugin_object.template(host, auth_tmpl_settings, req.params)
             tmpl = "authtype.html"
             loader[tmpl] = auth_tmpl_str
 

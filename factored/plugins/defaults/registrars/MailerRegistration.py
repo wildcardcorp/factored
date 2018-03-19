@@ -11,7 +11,7 @@ auditlog = logging.getLogger('factored.audit')
 
 
 class MailerRegistration(IRegistrationPlugin):
-    def handle(self, settings, params, datastore, finder):
+    def handle(self, host, settings, params, datastore, finder):
         if params.get("submit", None) == "requestaccess":
             sender = settings.get("sender", None)
             recipientstr = settings.get("recipients", None)

@@ -10,7 +10,7 @@ class EMailDomain(IFinderPlugin):
     def initialize(self, settings):
         self.settings = settings
 
-    def is_valid_subject(self, sub):
+    def is_valid_subject(self, host, sub):
         # might not correctly get _all_ addresses, but should succeed on most
         # of the ones we're looking for. If more accuracy is needed, you might
         # want to create a more sophisticated plugin.

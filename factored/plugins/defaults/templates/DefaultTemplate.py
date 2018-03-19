@@ -2,11 +2,7 @@ from factored.plugins import ITemplatePlugin
 
 
 class DefaultTemplate(ITemplatePlugin):
-    #
-    # given the app settings and request params, return a state this template
-    # is in.
-    #
-    def state(self, settings, params):
+    def state(self, host, settings, params):
         st = dict(
             show_input=False,
             show_input_email=False,
@@ -50,21 +46,7 @@ class DefaultTemplate(ITemplatePlugin):
 
         return st
 
-
-    #
-    # NOTE: this function should just return a template string, not a rendered
-    #   template -- there may be other templates that override or extend this
-    #   template.
-    #
-    # vars expected in thhis template:
-    #   - 'state' -- a dict containing values that pertain to what state the
-    #                template should present itself in, all values should be
-    #                True/False, see the 'state' member of this class
-    #   - 'auth_options' -- a list of dict values containing the following keys:
-    #       - 'display' -- what value to display for the option
-    #       - 'value' -- what value to give the submit button
-    #
-    def template(self, settings, params):
+    def template(self, state, auth_options):
         return """<!DOCTYPE html>
             <html lang="en-US">
                 <head>
