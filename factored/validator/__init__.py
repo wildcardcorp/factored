@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger('factored.validator')
 auditlog = logging.getLogger('factored.audit')
 
-from factored.plugins import get_manager, get_plugin_settings
+from factored.plugins import get_manager, get_plugin
 
 
 # req: request object with relevant identifying elements
@@ -59,12 +59,20 @@ def log_info(req, msg, exc_info=False, normal=True, audit=False):
 @view_config(route_name='validate')
 def validate(req):
     host = req.host
+    reqsettings = req.registry.settings
+    plugin_manager = reqsettings.get("plugins.manager", None)
+    if plugin_manager is None:
+        log_error("plugin manager not configured")
+        return False
+
+    sp, sp_settings = get_plugin("plugins.settings", "settings", reqsettings, plugin_manager)
 
     settings = {}
     settings.update(req.registry.settings)
-    sp = settings.get("settingsplugin", None)
     if sp is not None:
-        settings.update(sp.get_request_settings(host))
+        settings.update(sp.plugin_object.get_request_settings(host))
+
+    finder, finder_settings = get_plugin("plugins.finder", "finder", settings, plugin_manager)
 
     # -- VALIDATE TOKEN
     cookiename = settings.get("jwt.cookie.name", "factored")
@@ -106,10 +114,9 @@ def validate(req):
         return Response(status=403)
 
     # -- VALIDATE TOKEN SUBJECT
-    finder = settings["finder"].plugin_object
-    if not finder.is_valid_subject(host, subject):
+    if not finder.plugin_object.is_valid_subject(host, subject):
         msg = "{findername} : {subject} : not valid".format(
-            findername=settings["finder"].name,
+            findername=finder.name,
             subject=subject)
         log_info(req, msg, audit=True)
         return Response(status=403)
@@ -128,27 +135,6 @@ def app(global_config, **settings):
         pluginmodules = pluginmodules.splitlines()
     plugins = get_manager(plugin_dirs=plugindirs, plugin_modules=pluginmodules)
     settings["plugins.manager"] = plugins
-
-    # setup finder
-    findersettings = get_plugin_settings("plugins.finder", settings)
-    findername = settings.get("plugins.finder", None)
-    if findername is None:
-        log_err(req, "finder plugin not configured")
-        return None
-    finder = plugins.getPluginByName(findername, category="finder")
-    if finder is None:
-        log_err(req, "finder plugin not found")
-        return None
-    finder.plugin_object.initialize(findersettings)
-    settings["finder"] = finder
-
-    # setup settings plugin
-    sp_settings = get_plugin_settings("plugins.settings", settings)
-    sp_name = settings.get("plugins.finder", None)
-    sp_plugin = None
-    if sp_name is not None and sp_name.strip() != "":
-        sp_plugin = plugins.getPluginByName(sp_name, category="settings")
-    settings["settingsplugin"] = sp_plugin
 
     # setup wsgi app
     config = Configurator(settings=settings)

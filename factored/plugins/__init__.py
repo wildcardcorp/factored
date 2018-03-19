@@ -74,7 +74,8 @@ def get_plugin_settings(name_setting, allsettings, nolookup=False):
 
     Keyword Arguments:
     nolookup -- if True then name_setting will be the prefix to use to find all
-                settings for the plugin
+                settings for the plugin, otherwise the name_setting will be used
+                to look up the name of the plugin to use in the defult prefix
     """
     if nolookup:
         prefix = name_setting
@@ -90,6 +91,46 @@ def get_plugin_settings(name_setting, allsettings, nolookup=False):
         trimmed_key = key[len(prefix):]
         plugin_settings[trimmed_key] = allsettings[key]
     return plugin_settings
+
+
+def get_plugin(name_setting, category, allsettings, plugin_manager, nolookup=False):
+    """
+    Arguments:
+    name_setting -- name of setting that the plugin name is specified in, IE
+                    name of setting might be "plugins.finder" and plugin name
+                    might be "EMailDomain"
+    allsettings -- the complete set of settings to use for plugin configuration
+
+    Keyword Arguments:
+    nolookup -- if True then name_setting will be the prefix to use to find all
+                settings for the plugin, otherwise the name_setting will be used
+                to look up the name of the plugin to use in the defult prefix
+
+    Returns:
+    2-tuple with the first element being the PluginInfo object and the second
+    being a dict of settings for the plugin.
+    """
+
+    # nolookup?
+    #   - TRUE:
+    #       - plugin == name_setting
+    #       - settings == plugins.<name_setting>.*
+    #   - FALSE:
+    #       - plugin == settings[name_setting]
+    #       - settings == plugins.<settings[name_setting]>.*
+
+    if nolookup:
+        p_name = name_setting
+        p_settings_name = "plugin.{}.".format(p_name)
+    else:
+        p_name = allsettings.get(name_setting, None)
+        if p_name is None:
+            return (None, None)
+        p_settings_name = name_setting
+
+    p_settings = get_plugin_settings(p_settings_name, allsettings, nolookup=nolookup)
+    p = plugin_manager.getPluginByName(p_name, category=category)
+    return (p, p_settings)
 
 
 class IFinderPlugin(IPlugin):

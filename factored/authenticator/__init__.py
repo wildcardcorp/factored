@@ -8,7 +8,7 @@ from pyramid.view import view_config
 import logging
 logger = logging.getLogger('factored.authenticator')
 
-from factored.plugins import get_manager, get_plugin_settings
+from factored.plugins import get_manager, get_plugin
 
 
 def generate_jwt(settings, subject):
@@ -55,15 +55,25 @@ def get_authtype(req):
 @view_config(route_name='authenticate')
 def authenticate(req):
     host = req.host
+    reqsettings = req.registry.settings
+    plugins = reqsettings.get("plugins.manager", None)
+    if plugins is None:
+        log_error("plugin manager not configured")
+        return Response(status_code=500)
+
+    sp, sp_settings = get_plugin("plugins.settings", "settings", reqsettings, plugins)
 
     settings = {}
     settings.update(req.registry.settings)
-    sp = settings.get("settingsplugin", None)
     if sp is not None:
-        settings.update(sp.get_request_settings(host))
+        settings.update(sp.plugin_object.get_request_settings(host))
+
+    ds, ds_settings = get_plugin("plugins.datastore", "datastore", settings, plugins)
+    finder, finder_settings = get_plugin("plugins.finder", "finder", settings, plugins)
+    template, template_settings = get_plugin("plugins.template", "template", settings, plugins)
+    registrar, registrar_settings = get_plugin("plugins.registrar", "registrar", settings, plugins)
 
     # get db
-    ds = settings.get("datastore", None)
     if ds is None:
         logger.error("datastore not configured")
         return Response(status_code=500)
@@ -71,7 +81,6 @@ def authenticate(req):
         ds = ds.plugin_object
 
     # get finder
-    finder = settings.get("finder", None)
     if finder is None:
         logger.error("finder not configured")
         return Response(status_code=500)
@@ -80,7 +89,6 @@ def authenticate(req):
 
     auth_type = get_authtype(req)
 
-    plugins = settings["plugins.manager"]
     authenticators = plugins.getPluginsOfCategory("authenticator")
 
     # authentication plugins activated:
@@ -88,9 +96,11 @@ def authenticate(req):
                     for a in authenticators]
 
     # grab default template data
-    templatename = settings.get("plugins.template", "DefaultTemplate")
-    base_tmpl_plugin = plugins.getPluginByName(templatename, category="template")
-    base_tmpl_settings = settings.get("templatesettings", {})
+    if template is None:
+        logger.error("template not configured")
+        return Response(status_code=500)
+    base_tmpl_plugin = template
+    base_tmpl_settings = template_settings
     base_tmpl_state = base_tmpl_plugin.plugin_object.state(host, base_tmpl_settings, req.params)
     base_tmpl_str = base_tmpl_plugin.plugin_object.template(base_tmpl_state, auth_options)
 
@@ -110,9 +120,7 @@ def authenticate(req):
     # configured template info too
     tmpl = "base.html"
     if auth_type is not None and auth_type == "regform":
-        registrar = settings.get("registrar", None)
         if registrar is not None:
-            registrar_settings = settings.get("registrarsettings", {})
             registrar_tmpl_kwargs = registrar.plugin_object.handle(
                 host,
                 registrar_settings,
@@ -128,9 +136,8 @@ def authenticate(req):
             loader[tmpl] = registrar_tmpl_str
 
     elif auth_type is not None:
-        auth_plugin = plugins.getPluginByName(auth_type, category="authenticator")
+        auth_plugin, auth_tmpl_settings = get_plugin(auth_type, "authenticator", settings, plugins, nolookup=True)
         if auth_plugin is not None:
-            auth_tmpl_settings = get_plugin_settings("plugin.{}.".format(auth_type), settings, nolookup=True)
             auth_tmpl_kwargs = auth_plugin.plugin_object.handle(
                 host,
                 auth_tmpl_settings,
@@ -179,46 +186,6 @@ def app(global_config, **settings):
         pluginmodules = pluginmodules.splitlines()
     plugins = get_manager(plugin_dirs=plugindirs, plugin_modules=pluginmodules)
     settings["plugins.manager"] = plugins
-
-    # store the configured root template's settings here so it doesn't need
-    # to be re-done every request
-    settings["templatesettings"] = get_plugin_settings("plugins.template", settings)
-
-    # setup the configured datastore
-    dspluginname = settings.get("plugins.datastore", "SQLDataStore")
-    dspluginsettings = get_plugin_settings("plugins.datastore", settings)
-    ds = plugins.getPluginByName(dspluginname, category="datastore")
-    ds.plugin_object.initialize(dspluginsettings)
-    settings["datastore"] = ds
-
-    # setup the configured finder
-    finderpluginname = settings.get("plugins.finder", None)
-    if not finderpluginname:
-        logger.error("plugins.finder not configured")
-        return None
-    finderpluginsettings = get_plugin_settings("plugins.finder", settings)
-    settings["findersettings"] = finderpluginsettings
-    finder = plugins.getPluginByName(finderpluginname, category="finder")
-    finder.plugin_object.initialize(finderpluginsettings)
-    settings["finder"] = finder
-
-    # setup the configured registrar
-    registrarpluginname = settings.get("plugins.registrar", None)
-    if not registrarpluginname:
-        logger.info("plugins.registrar not configured")
-    else:
-        registrarpluginsettings = get_plugin_settings("plugins.registrar", settings)
-        settings["registrarsettings"] = registrarpluginsettings
-        registrar = plugins.getPluginByName(registrarpluginname, category="registrar")
-        settings["registrar"] = registrar
-
-    # setup settings plugin
-    sp_settings = get_plugin_settings("plugins.settings", settings)
-    sp_name = settings.get("plugins.finder", None)
-    sp_plugin = None
-    if sp_name is not None and sp_name.strip() != "":
-        sp_plugin = plugins.getPluginByName(sp_name, category="settings")
-    settings["settingsplugin"] = sp_plugin
 
     # setup the wsgi app
     config = Configurator(settings=settings)
