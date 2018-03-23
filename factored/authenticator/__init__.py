@@ -5,17 +5,17 @@ from pyramid.config import Configurator
 from pyramid.response import Response
 from pyramid.view import view_config
 
+from factored.plugins import get_manager, get_plugin
+
 import logging
 logger = logging.getLogger('factored.authenticator')
-
-from factored.plugins import get_manager, get_plugin
 
 
 def generate_jwt(settings, subject):
     cname = settings.get("jwt.cookie.name", "factored")
     try:
         cage = int(settings.get("jwt.cookie.age", 24*60*60))
-    except:
+    except Exception:
         logger.error("error reading jwt.cookie.age from settings")
         cage = 24*60*60
     csec = settings.get("jwt.cookie.secure", "true").strip().lower() == "true"

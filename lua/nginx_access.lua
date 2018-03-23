@@ -8,21 +8,13 @@ local nginx_access = {}
 function nginx_access.validate_auth(validator, authenticator)
     ngx.req.read_body()
     args = ngx.req.get_uri_args()
-    uriargs = ""
-    sep = ""
+    uriargs = ngx.encode_args(args)
     foundsrc = false
-    first = true
     for key, value in pairs(args) do
-        uriargs = uriargs .. sep .. key .. '=' .. value
-        if first then
-            sep = "&"
-            first = false
-        end
         if key == "src" then
             foundsrc = true
         end
     end
-
     -- if the 'src' parameter is found, that means the validator and auth'r
     -- have a place to redirect traffic back too. otherwise, they need one
     if not foundsrc then
@@ -30,9 +22,9 @@ function nginx_access.validate_auth(validator, authenticator)
         uriargs = "src=" .. ngx.escape_uri(fulluri) .. "&" .. uriargs
     end
 
-    curiargs = "?" .. uriargs
-
-    local resp = ngx.location.capture(validator..curiargs)
+    -- if the validator says the request has the appropriate param or cookie, or
+    -- whatever, then the request should pass through to the upstream.
+    local resp = ngx.location.capture(validator.."?"..uriargs)
     if resp.status == ngx.HTTP_OK then
         return
     end
@@ -47,7 +39,7 @@ function nginx_access.validate_auth(validator, authenticator)
     -- in the src argument after a successful auth
     --
     if foundsrc then
-        ngx.exec(authenticator, uriargs)
+        ngx.exec(authenticator.."?"..uriargs)
     else
         ngx.redirect(ngx.var.uri.."?"..uriargs, 302)
     end
