@@ -1,6 +1,6 @@
 build: build-validator build-authenticator
 
-test: test-validator test-authenticator test-factored
+test: test-validator test-authenticator test-factored test-plugins
 
 run:
 	docker-compose run --rm --service-ports nginx
@@ -17,6 +17,8 @@ test-authenticator:
 	docker-compose run --no-deps --rm --service-ports fvalidator py.test factored/authenticator/tests.py
 test-factored:
 	docker-compose run --no-deps --rm --service-ports fvalidator py.test factored/tests.py
+test-plugins:
+	docker-compose run --no-deps --rm --service-ports fvalidator py.test factored/plugins/tests.py
 
 run-validator:
 	docker-compose run --no-deps --rm --service-ports fvalidator

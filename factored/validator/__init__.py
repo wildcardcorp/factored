@@ -3,48 +3,50 @@ from pyramid.config import Configurator
 from pyramid.response import Response
 from pyramid.view import view_config
 
+from factored.plugins import get_manager, get_plugin
+
 import logging
 logger = logging.getLogger('factored.validator')
 auditlog = logging.getLogger('factored.audit')
-
-from factored.plugins import get_manager, get_plugin
 
 
 # req: request object with relevant identifying elements
 # msg: string to log
 # exc_info: True/False show exception info if found
 # audit: True/False the message is getting logged to the audit log
-def log_err(req, msg, exc_info=False, normal=True, audit=False):
+def log_err(req, msg, subject=None, exc_info=False, normal=True, audit=False):
     if normal:
         logger.error(msg, exc_info=exc_info)
     if audit:
         try:
             cookiename = req.registry.settings.get("jwt.cookie.name", "factored")
-            token = req.cookies.get(cookiename, req.params.get("token", "<no jwt found>"))
-            auditmsg = "{message} : {clientip} {jwttoken} {urlpath}".format(
+            token = req.cookies.get(cookiename, req.params.get("token", "<unknown>"))
+            subject = subject if subject is not None else token
+            auditmsg = "{message} : {clientip} {subject} {urlpath}".format(
                 clientip=req.client_addr or "<no client ip set>",
-                jwttoken=token,
+                subject=subject,
                 urlpath=req.path,
                 message=msg)
             auditlog.error(auditmsg)
-        except:
+        except Exception:
             logger.error("fatal error while logging to audit log")
 
 
-def log_info(req, msg, exc_info=False, normal=True, audit=False):
+def log_info(req, msg, subject=None, exc_info=False, normal=True, audit=False):
     if normal:
         logger.info(msg, exc_info=exc_info)
     if audit:
         try:
             cookiename = req.registry.settings.get("jwt.cookie.name", "factored")
-            token = req.cookies.get(cookiename, req.params.get("token", "<no jwt found>"))
-            auditmsg = "{clientip} : {jwttoken} : {urlpath} : {message}".format(
+            token = req.cookies.get(cookiename, req.params.get("token", "<unknown>"))
+            subject = subject if subject is not None else token
+            auditmsg = "{clientip} : {subject} : {urlpath} : {message}".format(
                 clientip=req.client_addr or "<no client ip set>",
-                jwttoken=token,
+                subject=subject,
                 urlpath=req.path,
                 message=msg)
             auditlog.info(auditmsg)
-        except:
+        except Exception:
             logger.error("fatal error while logging to audit log")
 
 
@@ -62,7 +64,7 @@ def validate(req):
     reqsettings = req.registry.settings
     plugin_manager = reqsettings.get("plugins.manager", None)
     if plugin_manager is None:
-        log_error("plugin manager not configured")
+        log_err("plugin manager not configured")
         return False
 
     sp, sp_settings = get_plugin("plugins.settings", "settings", reqsettings, plugin_manager)
@@ -105,7 +107,7 @@ def validate(req):
     except jwt.exceptions.ExpiredSignatureError:
         log_info(req, "expired signature", audit=True)
         return Response(status=403)
-    except:
+    except Exception:
         log_err(req, "JWT Decode ERROR", exc_info=True, audit=True)
         return Response(status=403)
 

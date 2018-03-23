@@ -37,15 +37,15 @@ class EMailAuth(IAuthenticatorPlugin):
         return "Email"
 
     def get_code_hash(self, settings, code):
-        salt = settings.get("code_hash_salt", "7pLPnGtXI9")
+        salt = str.encode(settings.get("code_hash_salt", "7pLPnGtXI9"))
+        bcode = str.encode(code)
         codehash = binascii.hexlify(
             hashlib.pbkdf2_hmac(
                 "sha256",
-                code,
-                str.encode(salt),
+                bcode,
+                salt,
                 100000))
-        return codehash
-
+        return codehash.decode('utf-8')
 
     def generate_and_send_code(self, host, settings, params, datastore, subject):
         # note: hexlify will generate 2 ascii chars for each byte, so the
@@ -53,7 +53,7 @@ class EMailAuth(IAuthenticatorPlugin):
         # get every other character so we get the desired number of chars
         # specified by the 'code_length' setting
         codelen = int(settings.get("code_length", 6))
-        newcode = binascii.hexlify(os.urandom(codelen))[0::2]
+        newcode = binascii.hexlify(os.urandom(codelen))[0::2].decode("utf-8")
 
         # save a storable hash of the code
         codehash = self.get_code_hash(settings, newcode)
@@ -63,8 +63,9 @@ class EMailAuth(IAuthenticatorPlugin):
         # send code to user
         tmpl_msg = settings.get(
             "body_template",
-            "You requested authentication.\nYour temporary access code is: {code}")
-        msg_out = tmpl_msg.replace("{code}", bytes.decode(newcode, 'utf-8'))
+            "You requested authentication.\n"
+            "Your temporary access code is: {code}")
+        msg_out = tmpl_msg.replace("{code}", newcode)
         msgdomain = settings.get("mail.domain", "localhost.localdomain")
         message = Message(
             subject=settings.get("subject", "2FA Authentication Code"),
@@ -78,10 +79,10 @@ class EMailAuth(IAuthenticatorPlugin):
         try:
             mailer.send_immediately(message, fail_silently=False)
             auditlog.info("code sent => {sub}".format(sub=subject))
-        except:
+        except Exception:
             logger.error("couldn't mail code", exc_info=True)
             raise CodeSendingError("Problem sending code. Please try again, "
-                                  "or contact an administrator.")
+                                   "or contact an administrator.")
 
     #
     # will raise exception on invalid code
@@ -98,7 +99,7 @@ class EMailAuth(IAuthenticatorPlugin):
         # Has the code timed out?
         try:
             code_timeout = int(settings.get("code_timeout", 300))
-        except:
+        except Exception:
             logger.error("failed to get code_timeout config", exc_info=True)
             code_timeout = 300
         timeout_delta = timedelta(seconds=code_timeout)
@@ -109,7 +110,7 @@ class EMailAuth(IAuthenticatorPlugin):
             raise CodeTimeoutError("Your code timed out, please try again.")
 
         # do the codes match?
-        codehash = self.get_code_hash(settings, str.encode(code))
+        codehash = self.get_code_hash(settings, code)
         if codehash != stored_payload:
             auditlog.info("{} had code mismatch".format(subject))
             raise CodeIncorrectError("Incorrect code.")
