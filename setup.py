@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='factored',
-    version='5.0.0.dev3',
+    version='5.0.0.dev4',
     description="Pluggable 2FA Proxy Service",
     long_description="%s\n%s" % (
         open("README.md").read(),
