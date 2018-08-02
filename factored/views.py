@@ -20,9 +20,13 @@ class AuthView(object):
 
 
 def notfound(req):
-    return HTTPFound(location="%s?%s" % (
-        req.registry['settings']['base_auth_url'],
-        urlencode({'referrer': generate_url(req, req.path)})))
+    base_path = req.registry['settings']['base_auth_url']
+    orig_url = generate_url(req, req.path)
+    redirect_url = generate_url(
+        req,
+        base_path,
+        params=dict(referrer=orig_url))
+    return HTTPFound(location=redirect_url)
 
 
 def auth_chooser(req):

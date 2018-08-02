@@ -1,6 +1,11 @@
 Changelog
 =========
 
+4.0.9 (unreleased)
+------------------
+
+- fix redirect location generation
+
 4.0.8 (2017-07-27)
 ------------------
 
