@@ -14,7 +14,7 @@ pyramid-simpleform==0.6.1
 pyramid-tm==2.0
 repoze.lru==0.6
 repoze.sendmail==4.3
-requests==2.18.1
+requests==2.20.0
 six==1.10.0
 SQLAlchemy==1.1.9
 transaction==2.1.2
