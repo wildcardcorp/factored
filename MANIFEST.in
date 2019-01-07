@@ -1,0 +1,23 @@
+include *.py
+include *.rst
+include *.sh
+include *.txt
+include *.yml
+include Dockerfile
+include Makefile
+include buildout.cfg
+include develop-noproxy.ini
+include develop.ini
+recursive-include docs *.py
+recursive-include docs *.rst
+recursive-include factored *.css
+recursive-include factored *.eot
+recursive-include factored *.js
+recursive-include factored *.map
+recursive-include factored *.png
+recursive-include factored *.pt
+recursive-include factored *.svg
+recursive-include factored *.ttf
+recursive-include factored *.woff
+recursive-include plugins *.lua
+recursive-include plugins *.txt
