@@ -1,7 +1,7 @@
 Changelog
 =========
 
-4.0.10 (unreleased)
+4.0.10 (2019-01-07)
 -------------------
 
 - bump requests version
