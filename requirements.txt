@@ -5,4 +5,4 @@ yapsy==1.11.223
 pyjwt==1.6.0
 pytest==3.4.2
 jinja2==2.10
-sqlalchemy==1.2.5
+sqlalchemy==1.3.3
