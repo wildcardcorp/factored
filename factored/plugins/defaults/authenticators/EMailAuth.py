@@ -58,6 +58,9 @@ class EMailAuth(IAuthenticatorPlugin):
         # save a storable hash of the code
         codehash = self.get_code_hash(settings, newcode)
         timestamp = time.time()
+        # TODO: need to handle case where there's an exception here, possibly
+        # indicating an issue where the subject isn't a valid subject for
+        # generating access requests but is otherwise a valid email
         datastore.store_access_request(host, subject, timestamp, codehash)
 
         # send code to user
