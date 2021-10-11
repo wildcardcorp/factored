@@ -4,7 +4,9 @@ Changelog
 4.0.11 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- bump boostrap dependency
+- remove jquery dependency
+- tweak auth list style to better present buttons
 
 
 4.0.10 (2019-01-07)
