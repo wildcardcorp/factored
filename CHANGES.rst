@@ -1,8 +1,8 @@
 Changelog
 =========
 
-4.0.11 (unreleased)
--------------------
+4.1.0 (2021-10-11)
+------------------
 
 - bump boostrap dependency
 - remove jquery dependency
