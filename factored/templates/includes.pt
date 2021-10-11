@@ -40,6 +40,15 @@
       footer p{
         text-align: center;
       }
+
+      .authtypelist {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .authtypelist li {
+        display: inline-block;
+      }
     </style>
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->

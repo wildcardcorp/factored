@@ -1,6 +1,6 @@
 <h2>Select Authentication Type</h2>
 
-<ul>
+<ul class="authtypelist">
   <tal:types tal:repeat="type auth_types">
   <li>
     <form method="get" action="${type.url}">
