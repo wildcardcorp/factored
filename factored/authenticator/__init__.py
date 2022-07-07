@@ -157,7 +157,7 @@ def authenticate(req):
                         status=302)
                     src = urlparse(req.params.get("src", "/"))
                     goodsrc = (req.scheme, req.host, src.path, src.params, src.query, src.fragment)
-                    resp.location = goodsrc
+                    resp.location = urlunparse(goodsrc)
                     resp.set_cookie(
                         name=cname,
                         value=enctoken,
