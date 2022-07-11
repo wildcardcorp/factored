@@ -41,7 +41,7 @@ function nginx_access.validate_auth(validator, authenticator)
     if foundsrc then
         ngx.exec(authenticator.."?"..uriargs)
     else
-        ngx.redirect(ngx.var.uri.."?"..uriargs, 302)
+        ngx.redirect(ngx.var.scheme.."://"..ngx.var.http_host.."?"..uriargs, 302)
     end
 end
 

@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from urllib.parse import urlparse, urlunparse
+
 import jinja2
 import jwt
 from pyramid.config import Configurator
@@ -153,7 +155,9 @@ def authenticate(req):
                     resp = Response(
                         body="Successfully authenticated, redirecting now...",
                         status=302)
-                    resp.location = req.params.get("src", "/")
+                    src = urlparse(req.params.get("src", "/"))
+                    goodsrc = (req.scheme, req.host, src.path, src.params, src.query, src.fragment)
+                    resp.location = urlunparse(goodsrc)
                     resp.set_cookie(
                         name=cname,
                         value=enctoken,
