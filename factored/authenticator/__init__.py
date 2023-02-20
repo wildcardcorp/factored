@@ -7,7 +7,7 @@ from pyramid.config import Configurator
 from pyramid.response import Response
 from pyramid.view import view_config
 
-from factored.plugins import get_manager, get_plugin
+from factored.plugins import get_manager, get_plugin, IAuthenticatorPlugin
 
 import logging
 logger = logging.getLogger('factored.authenticator')
@@ -42,7 +42,7 @@ def generate_jwt(settings, subject):
 def get_authtype(req):
     # auth_type is derived from either the auth options submit button, or
     # the normal form submission (hidden value)
-    submit = req.params.get("submit", None)
+    submit = req.params.get("submitbtn", None)
     if submit is not None:
         if submit.startswith("authtype_"):
             auth_type = submit[9:]
@@ -56,11 +56,13 @@ def get_authtype(req):
 
 @view_config(route_name='authenticate')
 def authenticate(req):
+    auditlog = logging.getLogger('fm.audit')
+
     host = req.domain
     reqsettings = req.registry.settings
     plugins = reqsettings.get("plugins.manager", None)
     if plugins is None:
-        log_error("plugin manager not configured")
+        logger.error("plugin manager not configured")
         return Response(status_code=500)
 
     sp, sp_settings = get_plugin("plugins.settings", "settings", reqsettings, plugins)
@@ -92,7 +94,6 @@ def authenticate(req):
     auth_type = get_authtype(req)
 
     authenticators = plugins.getPluginsOfCategory("authenticator")
-
     # authentication plugins activated:
     auth_options = [dict(value=a.name, display=a.plugin_object.display_name)
                     for a in authenticators]
@@ -115,13 +116,13 @@ def authenticate(req):
         "auth_options": auth_options,
         "src": req.params.get("src", ""),
     }
-    if auth_type is not None:
+    if auth_type is not None and auth_type.strip() != '':
         tmpl_kwargs["authtype"] = auth_type
 
     # if we have a valid auth type selected by the user, then get it's 
     # configured template info too
     tmpl = "base.html"
-    if auth_type is not None and auth_type == "regform":
+    if auth_type == "regform":
         if registrar is not None:
             registrar_tmpl_kwargs = registrar.plugin_object.handle(
                 host,
@@ -177,7 +178,9 @@ def authenticate(req):
         autoescape=jinja2.select_autoescape(['html', 'xml']))
     tmpl_rendered = tmpl_env.get_template(tmpl).render(**tmpl_kwargs)
 
-    return Response(body=tmpl_rendered, status=200)
+    resp = Response(body=tmpl_rendered, status=200)
+    
+    return IAuthenticatorPlugin.modify_response(resp=resp)
 
 
 def app(global_config, **settings):
