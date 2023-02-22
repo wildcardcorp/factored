@@ -7,11 +7,13 @@ from pyramid.config import Configurator
 from pyramid.response import Response
 from pyramid.view import view_config
 
-from factored.plugins import get_manager, get_plugin, IAuthenticatorPlugin
+from factored.plugins import get_manager, get_plugin
+
+from factored_manager.plugins.FactoredManagerEmailAuth import FactoredManagerEmailAuth
 
 import logging
 logger = logging.getLogger('factored.authenticator')
-
+auditlog = logging.getLogger('factored.audit')
 
 def generate_jwt(settings, subject):
     cname = settings.get("jwt.cookie.name", "factored")
@@ -56,8 +58,6 @@ def get_authtype(req):
 
 @view_config(route_name='authenticate')
 def authenticate(req):
-    auditlog = logging.getLogger('fm.audit')
-
     host = req.domain
     reqsettings = req.registry.settings
     plugins = reqsettings.get("plugins.manager", None)
@@ -156,6 +156,7 @@ def authenticate(req):
                     resp = Response(
                         body="Successfully authenticated, redirecting now...",
                         status=302)
+                    auditlog.info('Successfully authenticated, redirecting now...')
                     src = urlparse(req.params.get("src", "/"))
                     goodsrc = (req.scheme, req.host, src.path, src.params, src.query, src.fragment)
                     resp.location = urlunparse(goodsrc)
@@ -166,7 +167,7 @@ def authenticate(req):
                         secure=csec,
                         httponly=chttponly,
                         overwrite=True)
-                    return resp
+                    return FactoredManagerEmailAuth.modify_response(resp=resp, host=host, settings=settings, plugins=plugins, email=subject)
                 tmpl_kwargs.update(auth_tmpl_kwargs)
             auth_tmpl_str = auth_plugin.plugin_object.template(host, auth_tmpl_settings, req.params)
             tmpl = "authtype.html"
@@ -177,10 +178,8 @@ def authenticate(req):
         loader=jinja2.DictLoader(loader),
         autoescape=jinja2.select_autoescape(['html', 'xml']))
     tmpl_rendered = tmpl_env.get_template(tmpl).render(**tmpl_kwargs)
-
     resp = Response(body=tmpl_rendered, status=200)
-    
-    return IAuthenticatorPlugin.modify_response(resp=resp)
+    return resp
 
 
 def app(global_config, **settings):
