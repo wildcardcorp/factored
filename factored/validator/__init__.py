@@ -64,8 +64,8 @@ def validate(req):
     reqsettings = req.registry.settings
     plugin_manager = reqsettings.get("plugins.manager", None)
     if plugin_manager is None:
-        log_err("plugin manager not configured")
-        return False
+        log_err(req, "plugin manager not configured")
+        return Response(status=500)
 
     sp, sp_settings = get_plugin("plugins.settings", "settings", reqsettings, plugin_manager)
 
@@ -127,6 +127,46 @@ def validate(req):
     return Response(status=200)
 
 
+@view_config(route_name='status')
+def status(req):
+    # check that we can get the plugin manager
+    host = req.domain
+    reqsettings = req.registry.settings
+    plugin_manager = reqsettings.get("plugins.manager", None)
+    if plugin_manager is None:
+        log_err(req, "plugin manager not configured")
+        return Response(status=500)
+
+    # check that we can get all the appropriate settings
+    sp, _ = get_plugin("plugins.settings", "settings", reqsettings, plugin_manager)
+    settings = {}
+    settings.update(req.registry.settings)
+    if sp is None:
+        log_err(req, "no settings plugin found")
+        return Response(status=500)
+    else:
+        try:
+            settings.update(sp.plugin_object.get_request_settings(host))
+        except Exception:
+            log_err(req, "couldn't fetch settings through settings plugin", exc_info=True)
+            return Response(status=500)
+
+    # check we can get the finder
+    finder, _ = get_plugin("plugins.finder", "finder", settings, plugin_manager)
+    if finder is None:
+        log_err(req, "no finder plugin found")
+        return Response(status=500)
+    else:
+        try:
+            # don't care if it's valid or not, just that it executes without exception
+            finder.plugin_object.is_valid_subject(host, "__notarealsubject__")
+        except Exception:
+            log_err(req, "problem checking subject validity", exc_info=True)
+            return Response(status=500)
+
+    return Response(status=200)
+
+
 def app(global_config, **settings):
     # setup plugin manager
     plugindirs = settings.get('plugins.dirs', None)
@@ -141,6 +181,7 @@ def app(global_config, **settings):
     # setup wsgi app
     config = Configurator(settings=settings)
     config.add_route('validate', '/')
+    config.add_route('status', '/validator-status')
     config.scan('factored.validator')
     app = config.make_wsgi_app()
     return app

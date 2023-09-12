@@ -60,7 +60,7 @@ def authenticate(req):
     reqsettings = req.registry.settings
     plugins = reqsettings.get("plugins.manager", None)
     if plugins is None:
-        log_error("plugin manager not configured")
+        logger.error("plugin manager not configured")
         return Response(status_code=500)
 
     sp, sp_settings = get_plugin("plugins.settings", "settings", reqsettings, plugins)
@@ -180,6 +180,58 @@ def authenticate(req):
     return Response(body=tmpl_rendered, status=200)
 
 
+@view_config(route_name='status')
+def status(req):
+    # check that we can get the plugin manager
+    host = req.domain
+    reqsettings = req.registry.settings
+    plugin_manager = reqsettings.get("plugins.manager", None)
+    if plugin_manager is None:
+        logger.error("plugin manager not configured")
+        return Response(status=500)
+
+    # check that we can get all the appropriate settings
+    sp, _ = get_plugin("plugins.settings", "settings", reqsettings, plugin_manager)
+    settings = {}
+    settings.update(req.registry.settings)
+    if sp is None:
+        logger.error("no settings plugin found")
+        return Response(status=500)
+    else:
+        try:
+            settings.update(sp.plugin_object.get_request_settings(host))
+        except Exception:
+            logger.error("couldn't fetch settings through settings plugin", exc_info=True)
+            return Response(status=500)
+
+    # check we can get the datastore
+    ds, _ = get_plugin("plugins.datastore", "datastore", settings, plugin_manager)
+    if ds is None:
+        logger.error("no data store plugin found")
+        return Response(status=500)
+
+    # check we can get the finder
+    finder, _ = get_plugin("plugins.finder", "finder", settings, plugin_manager)
+    if finder is None:
+        logger.error("no finder plugin found")
+        return Response(status=500)
+    else:
+        try:
+            # don't care if it's valid or not, just that it executes without exception
+            finder.plugin_object.is_valid_subject(host, "__notarealsubject__")
+        except Exception:
+            logger.error("problem checking subject validity", exc_info=True)
+            return Response(status=500)
+
+    # check we can get the template
+    template, _ = get_plugin("plugins.template", "template", settings, plugin_manager)
+    if template is None:
+        logger.error("no template plugin found")
+        return Response(status_code=500)
+
+    return Response(status=200)
+
+
 def app(global_config, **settings):
     # setup the plugin manager
     plugindirs = settings.get('plugins.dirs', None)
@@ -195,6 +247,7 @@ def app(global_config, **settings):
     config = Configurator(settings=settings)
     config.include('pyramid_mailer')
     config.add_route('authenticate', '/')
+    config.add_route('status', '/authenticator-status')
     config.scan('factored.authenticator')
     app = config.make_wsgi_app()
     return app
