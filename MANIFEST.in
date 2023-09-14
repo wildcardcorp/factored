@@ -1,0 +1,11 @@
+include *.md
+include *.sh
+include *.txt
+include *.yml
+include Dockerfile
+include Makefile
+recursive-include data *.marker
+recursive-include etc *.conf
+recursive-include etc *.ini
+recursive-include factored *.py
+recursive-include lua *.lua
