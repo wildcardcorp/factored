@@ -9,9 +9,11 @@ from pyramid.view import view_config
 
 from factored.plugins import get_manager, get_plugin
 
+from factored_manager.plugins.FactoredManagerEmailAuth import FactoredManagerEmailAuth
+
 import logging
 logger = logging.getLogger('factored.authenticator')
-
+auditlog = logging.getLogger('factored.audit')
 
 def generate_jwt(settings, subject):
     cname = settings.get("jwt.cookie.name", "factored")
@@ -42,7 +44,7 @@ def generate_jwt(settings, subject):
 def get_authtype(req):
     # auth_type is derived from either the auth options submit button, or
     # the normal form submission (hidden value)
-    submit = req.params.get("submit", None)
+    submit = req.params.get("submitbtn", None)
     if submit is not None:
         if submit.startswith("authtype_"):
             auth_type = submit[9:]
@@ -92,7 +94,6 @@ def authenticate(req):
     auth_type = get_authtype(req)
 
     authenticators = plugins.getPluginsOfCategory("authenticator")
-
     # authentication plugins activated:
     auth_options = [dict(value=a.name, display=a.plugin_object.display_name)
                     for a in authenticators]
@@ -115,13 +116,13 @@ def authenticate(req):
         "auth_options": auth_options,
         "src": req.params.get("src", ""),
     }
-    if auth_type is not None:
+    if auth_type is not None and auth_type.strip() != '':
         tmpl_kwargs["authtype"] = auth_type
 
     # if we have a valid auth type selected by the user, then get it's 
     # configured template info too
     tmpl = "base.html"
-    if auth_type is not None and auth_type == "regform":
+    if auth_type == "regform":
         if registrar is not None:
             registrar_tmpl_kwargs = registrar.plugin_object.handle(
                 host,
@@ -155,6 +156,7 @@ def authenticate(req):
                     resp = Response(
                         body="Successfully authenticated, redirecting now...",
                         status=302)
+                    auditlog.info('Successfully authenticated, redirecting now...')
                     src = urlparse(req.params.get("src", "/"))
                     goodsrc = (req.scheme, req.host, src.path, src.params, src.query, src.fragment)
                     resp.location = urlunparse(goodsrc)
@@ -165,7 +167,7 @@ def authenticate(req):
                         secure=csec,
                         httponly=chttponly,
                         overwrite=True)
-                    return resp
+                    return FactoredManagerEmailAuth.modify_response(resp=resp, host=host, settings=settings, plugins=plugins, email=subject)
                 tmpl_kwargs.update(auth_tmpl_kwargs)
             auth_tmpl_str = auth_plugin.plugin_object.template(host, auth_tmpl_settings, req.params)
             tmpl = "authtype.html"
@@ -176,8 +178,8 @@ def authenticate(req):
         loader=jinja2.DictLoader(loader),
         autoescape=jinja2.select_autoescape(['html', 'xml']))
     tmpl_rendered = tmpl_env.get_template(tmpl).render(**tmpl_kwargs)
-
-    return Response(body=tmpl_rendered, status=200)
+    resp = Response(body=tmpl_rendered, status=200)
+    return resp
 
 
 @view_config(route_name='status')
