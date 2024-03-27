@@ -37,7 +37,7 @@ class EMailAuth(IAuthenticatorPlugin):
         return "Email"
 
     def get_code_hash(self, settings, code):
-        salt = str.encode(settings.get("code_hash_salt", "7pLPnGtXI9"))
+        salt = str.encode(settings.get["code_hash_salt"])
         bcode = str.encode(code)
         codehash = binascii.hexlify(
             hashlib.pbkdf2_hmac(
