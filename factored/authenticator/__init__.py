@@ -3,6 +3,7 @@ from urllib.parse import urlparse, urlunparse
 
 import jinja2
 import jwt
+import base64
 from pyramid.config import Configurator
 from pyramid.response import Response
 from pyramid.view import view_config
@@ -14,7 +15,7 @@ import logging
 logger = logging.getLogger('factored.authenticator')
 
 
-def generate_jwt(settings, subject):
+def generate_jwt(settings, subject, extra_info=None):
     cname = settings.get("jwt.cookie.name", "factored")
     try:
         cage = int(settings.get("jwt.cookie.age", 24*60*60))
@@ -28,14 +29,18 @@ def generate_jwt(settings, subject):
     algo = settings.get('jwt.algorithm', 'HS512')
     secret = settings.get('jwt.secret', None)
     exp = datetime.utcnow() + timedelta(seconds=cage)
+    jwt_dict = {
+        'sub': subject,
+        'exp': exp,
+        'aud': audience,
+    }
+    if extra_info is not None:
+        jwt_dict['extra_info'] = extra_info
     enctoken = jwt.encode(
-        dict(
-            sub=subject,
-            exp=exp,
-            aud=audience,
-        ),
+        jwt_dict,
         secret,
-        algorithm=algo)
+        algorithm=algo,
+    )
 
     return (cname, cage, csec, chttponly, enctoken)
 
@@ -128,7 +133,7 @@ def authenticate(req):
     if auth_type is not None:
         tmpl_kwargs["authtype"] = auth_type
 
-    # if we have a valid auth type selected by the user, then get it's 
+    # if we have a valid auth type selected by the user, then get it's
     # configured template info too
     tmpl = "base.html"
     if auth_type is not None and auth_type == "regform":
@@ -159,9 +164,10 @@ def authenticate(req):
             if auth_tmpl_kwargs is not None:
                 subject = auth_tmpl_kwargs.get("subject", None)
                 authenticated = auth_tmpl_kwargs.get("authenticated", False)
+                extra_info = auth_tmpl_kwargs.get("extra_info", None)
                 # SUCCESSFULLY AUTHENTICATED
                 if authenticated and subject is not None:
-                    cname, cage, csec, chttponly, enctoken = generate_jwt(settings, subject)
+                    cname, cage, csec, chttponly, enctoken = generate_jwt(settings, subject, extra_info)
                     resp = Response(
                         body="Successfully authenticated, redirecting now...",
                         status=302)
@@ -174,7 +180,20 @@ def authenticate(req):
                         max_age=cage,
                         secure=csec,
                         httponly=chttponly,
-                        overwrite=True)
+                        overwrite=True
+                    )
+                    try:
+                        factored_complainant = base64.b64encode(subject.encode('utf-8')).decode('utf-8')
+                        resp.set_cookie(
+                            name='factored_complainant',
+                            value=factored_complainant,
+                            max_age=cage,
+                            secure=csec,
+                            httponly=False,
+                            overwrite=True,
+                        )
+                    except Exception:
+                        logger.warning('Error setting factored_complainant', exc_info=True)
                     return resp
                 tmpl_kwargs.update(auth_tmpl_kwargs)
             auth_tmpl_str = auth_plugin.plugin_object.template(host, auth_tmpl_settings, req.params)
