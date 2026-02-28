@@ -7,7 +7,6 @@ import base64
 from pyramid.config import Configurator
 from pyramid.response import Response
 from pyramid.view import view_config
-from urllib.parse import urlparse
 
 from factored.plugins import get_manager, get_plugin
 
@@ -48,16 +47,7 @@ def generate_jwt(settings, subject, extra_info=None):
 def get_authtype(req):
     # auth_type is derived from either the auth options submit button, or
     # the normal form submission (hidden value)
-    params = {}
-    try:
-        url = urlparse(req.referrer)
-        querylist = url.query.split('&')
-        for param in querylist:
-            key, value = param.split('=')
-            params.update({key:value})
-    except:
-        pass
-    submit = params.get('submitbtn', None)
+    submit = req.params.get('submit', None)
     if submit is not None:
         if submit.startswith("authtype_"):
             auth_type = submit[9:]
