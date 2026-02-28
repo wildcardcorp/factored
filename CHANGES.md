@@ -1,8 +1,10 @@
-5.0.0.dev7 (unreleased)
------------------------
+Changelog
+=========
 
-- Nothing changed yet.
+unreleased
+----------
 
+### BUG FIXES
 
-5.0.0.dev6 (2026-02-27)
------------------------
+* Revert get_authtype for authenticator to a known good version that works with the current values within the template
+
